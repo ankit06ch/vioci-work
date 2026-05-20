@@ -1,0 +1,858 @@
+{
+  "id": "dgm_4d8f0279e40941f6",
+  "schema_version": "0.1.0",
+  "source": {
+    "uri": "/Users/ankit/Projects/Vioci_work/examples/electrical_rc_circuit.png",
+    "sha256": "a759df96ddd7eb5341db101806c10c5d6654b9733b50cffd863026af08b58d12",
+    "mime": "image/png",
+    "width_px": 600,
+    "height_px": 300,
+    "dpi": null,
+    "pages": 1,
+    "captured_at": "2026-05-13T20:50:06.497917Z"
+  },
+  "nodes": [
+    {
+      "id": "n_5cebc122471ebe3d",
+      "kind": "voltage-source",
+      "label": "Vs",
+      "properties": {},
+      "ports": [
+        {
+          "id": "p_6c546edea67d80ca",
+          "node_id": "n_5cebc122471ebe3d",
+          "role": "output",
+          "position_px": [
+            100.0,
+            150.0
+          ],
+          "direction": "out",
+          "properties": {}
+        },
+        {
+          "id": "p_9bee83cc809d956e",
+          "node_id": "n_5cebc122471ebe3d",
+          "role": "input",
+          "position_px": [
+            50.0,
+            150.0
+          ],
+          "direction": "in",
+          "properties": {}
+        }
+      ],
+      "geometry": null,
+      "domain": "electrical",
+      "provenance": {
+        "stage": "vlm",
+        "producer": "google:gemini-2.5-flash-lite",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657322Z",
+        "notes": null
+      },
+      "confidence": 0.9,
+      "tags": [
+        "source"
+      ]
+    },
+    {
+      "id": "n_e0417c423de58116",
+      "kind": "resistor",
+      "label": "R = 10kΩ",
+      "properties": {
+        "value": {
+          "value": 10000.0,
+          "unit": "ohm",
+          "raw": "R = 10kΩ",
+          "uncertainty": null
+        }
+      },
+      "ports": [
+        {
+          "id": "p_3f62a07ae4d35317",
+          "node_id": "n_e0417c423de58116",
+          "role": "input",
+          "position_px": [
+            150.0,
+            150.0
+          ],
+          "direction": "in",
+          "properties": {}
+        },
+        {
+          "id": "p_37eecd8dc0727e01",
+          "node_id": "n_e0417c423de58116",
+          "role": "output",
+          "position_px": [
+            250.0,
+            150.0
+          ],
+          "direction": "out",
+          "properties": {}
+        }
+      ],
+      "geometry": null,
+      "domain": "electrical",
+      "provenance": {
+        "stage": "vlm",
+        "producer": "google:gemini-2.5-flash-lite",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657322Z",
+        "notes": null
+      },
+      "confidence": 0.9,
+      "tags": []
+    },
+    {
+      "id": "n_6552d0a1d63e8d1a",
+      "kind": "capacitor",
+      "label": "C = 1μF",
+      "properties": {
+        "value": {
+          "value": 1e-6,
+          "unit": "farad",
+          "raw": "C = 1μF",
+          "uncertainty": null
+        }
+      },
+      "ports": [
+        {
+          "id": "p_f09ef0806e40fa1e",
+          "node_id": "n_6552d0a1d63e8d1a",
+          "role": "input",
+          "position_px": [
+            300.0,
+            150.0
+          ],
+          "direction": "in",
+          "properties": {}
+        },
+        {
+          "id": "p_36e1b8d86038fb30",
+          "node_id": "n_6552d0a1d63e8d1a",
+          "role": "output",
+          "position_px": [
+            400.0,
+            150.0
+          ],
+          "direction": "out",
+          "properties": {}
+        }
+      ],
+      "geometry": null,
+      "domain": "electrical",
+      "provenance": {
+        "stage": "vlm",
+        "producer": "google:gemini-2.5-flash-lite",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657322Z",
+        "notes": null
+      },
+      "confidence": 0.9,
+      "tags": []
+    },
+    {
+      "id": "n_c2380278ad9352f3",
+      "kind": "ground",
+      "label": "GND",
+      "properties": {},
+      "ports": [
+        {
+          "id": "p_ca824772df2e3bcb",
+          "node_id": "n_c2380278ad9352f3",
+          "role": "input",
+          "position_px": [
+            350.0,
+            230.0
+          ],
+          "direction": "in",
+          "properties": {}
+        }
+      ],
+      "geometry": null,
+      "domain": "electrical",
+      "provenance": {
+        "stage": "vlm",
+        "producer": "google:gemini-2.5-flash-lite",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657322Z",
+        "notes": null
+      },
+      "confidence": 0.9,
+      "tags": []
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_64f3c02958843a20",
+      "source": "n_5cebc122471ebe3d",
+      "target": "n_e0417c423de58116",
+      "source_port": null,
+      "target_port": null,
+      "kind": "wire",
+      "label": null,
+      "directed": false,
+      "properties": {},
+      "polyline_px": [
+        [
+          100.0,
+          150.0
+        ],
+        [
+          150.0,
+          150.0
+        ]
+      ],
+      "domain": "electrical",
+      "provenance": {
+        "stage": "fusion",
+        "producer": "schemagraph.ir.builder.IRBuilder",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657334Z",
+        "notes": null
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "e_ff42828e53d88e25",
+      "source": "n_e0417c423de58116",
+      "target": "n_6552d0a1d63e8d1a",
+      "source_port": null,
+      "target_port": null,
+      "kind": "wire",
+      "label": null,
+      "directed": false,
+      "properties": {},
+      "polyline_px": [
+        [
+          250.0,
+          150.0
+        ],
+        [
+          300.0,
+          150.0
+        ]
+      ],
+      "domain": "electrical",
+      "provenance": {
+        "stage": "fusion",
+        "producer": "schemagraph.ir.builder.IRBuilder",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657334Z",
+        "notes": null
+      },
+      "confidence": 0.9
+    },
+    {
+      "id": "e_37b0c73f5e61e4d6",
+      "source": "n_6552d0a1d63e8d1a",
+      "target": "n_c2380278ad9352f3",
+      "source_port": null,
+      "target_port": null,
+      "kind": "wire",
+      "label": null,
+      "directed": false,
+      "properties": {},
+      "polyline_px": [
+        [
+          400.0,
+          150.0
+        ],
+        [
+          400.0,
+          200.0
+        ],
+        [
+          350.0,
+          200.0
+        ],
+        [
+          350.0,
+          230.0
+        ]
+      ],
+      "domain": "electrical",
+      "provenance": {
+        "stage": "vlm",
+        "producer": "google:gemini-2.5-flash-lite",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657322Z",
+        "notes": null
+      },
+      "confidence": 0.45
+    },
+    {
+      "id": "e_ea31a44bfbb36a7c",
+      "source": "n_5cebc122471ebe3d",
+      "target": "n_c2380278ad9352f3",
+      "source_port": null,
+      "target_port": null,
+      "kind": "wire",
+      "label": null,
+      "directed": false,
+      "properties": {},
+      "polyline_px": [
+        [
+          75.0,
+          175.0
+        ],
+        [
+          75.0,
+          250.0
+        ],
+        [
+          350.0,
+          250.0
+        ]
+      ],
+      "domain": "electrical",
+      "provenance": {
+        "stage": "vlm",
+        "producer": "google:gemini-2.5-flash-lite",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:11.657322Z",
+        "notes": null
+      },
+      "confidence": 0.45
+    }
+  ],
+  "constraints": [
+    {
+      "id": "c_54176c9a01f707ce",
+      "kind": "boundary_condition",
+      "targets": [
+        "n_c2380278ad9352f3"
+      ],
+      "expression": "V = 0",
+      "value": null,
+      "provenance": {
+        "stage": "annotator",
+        "producer": "ElectricalAnnotator",
+        "confidence": 1.0,
+        "timestamp": "2026-05-13T20:50:24.862501Z",
+        "notes": null
+      }
+    }
+  ],
+  "equations": [],
+  "datasets": [],
+  "parameters": [],
+  "geometry_layer": null,
+  "primitives": {
+    "width_px": 600,
+    "height_px": 300,
+    "shapes": [
+      {
+        "id": "pr_8a55794b5ad53fc6",
+        "kind": "line",
+        "points": [
+          [
+            43.0,
+            228.0
+          ],
+          [
+            471.0,
+            228.0
+          ]
+        ],
+        "bbox": {
+          "x": 43.0,
+          "y": 228.0,
+          "w": 428.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_7ca5056b360e29c8",
+        "kind": "line",
+        "points": [
+          [
+            44.0,
+            231.0
+          ],
+          [
+            471.0,
+            231.0
+          ]
+        ],
+        "bbox": {
+          "x": 44.0,
+          "y": 231.0,
+          "w": 427.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_64199408e4c84c07",
+        "kind": "line",
+        "points": [
+          [
+            67.0,
+            121.0
+          ],
+          [
+            122.0,
+            121.0
+          ]
+        ],
+        "bbox": {
+          "x": 67.0,
+          "y": 121.0,
+          "w": 55.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_b6e7adaed768e517",
+        "kind": "line",
+        "points": [
+          [
+            66.0,
+            118.0
+          ],
+          [
+            122.0,
+            118.0
+          ]
+        ],
+        "bbox": {
+          "x": 66.0,
+          "y": 118.0,
+          "w": 56.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_73ba159fc524cb9d",
+        "kind": "line",
+        "points": [
+          [
+            197.0,
+            121.0
+          ],
+          [
+            381.0,
+            121.0
+          ]
+        ],
+        "bbox": {
+          "x": 197.0,
+          "y": 121.0,
+          "w": 184.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_2885772fa8583528",
+        "kind": "line",
+        "points": [
+          [
+            197.0,
+            118.0
+          ],
+          [
+            381.0,
+            118.0
+          ]
+        ],
+        "bbox": {
+          "x": 197.0,
+          "y": 118.0,
+          "w": 184.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_cb584e0fbf38fa40",
+        "kind": "line",
+        "points": [
+          [
+            471.0,
+            230.0
+          ],
+          [
+            471.0,
+            119.0
+          ]
+        ],
+        "bbox": {
+          "x": 471.0,
+          "y": 119.0,
+          "w": 0.0,
+          "h": 111.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_32a8c48d165d5c43",
+        "kind": "line",
+        "points": [
+          [
+            468.0,
+            227.0
+          ],
+          [
+            468.0,
+            118.0
+          ]
+        ],
+        "bbox": {
+          "x": 468.0,
+          "y": 118.0,
+          "w": 0.0,
+          "h": 109.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_bde675891072f097",
+        "kind": "line",
+        "points": [
+          [
+            120.0,
+            140.0
+          ],
+          [
+            200.0,
+            140.0
+          ]
+        ],
+        "bbox": {
+          "x": 120.0,
+          "y": 140.0,
+          "w": 80.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_46352e68af073435",
+        "kind": "line",
+        "points": [
+          [
+            46.0,
+            227.0
+          ],
+          [
+            46.0,
+            147.0
+          ]
+        ],
+        "bbox": {
+          "x": 46.0,
+          "y": 147.0,
+          "w": 0.0,
+          "h": 80.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_26bc0a3631923d36",
+        "kind": "line",
+        "points": [
+          [
+            121.0,
+            99.0
+          ],
+          [
+            199.0,
+            99.0
+          ]
+        ],
+        "bbox": {
+          "x": 121.0,
+          "y": 99.0,
+          "w": 78.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_43a350e3df25a3d8",
+        "kind": "line",
+        "points": [
+          [
+            119.0,
+            102.0
+          ],
+          [
+            200.0,
+            102.0
+          ]
+        ],
+        "bbox": {
+          "x": 119.0,
+          "y": 102.0,
+          "w": 81.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_ae546a77b30189f3",
+        "kind": "line",
+        "points": [
+          [
+            398.0,
+            121.0
+          ],
+          [
+            467.0,
+            121.0
+          ]
+        ],
+        "bbox": {
+          "x": 398.0,
+          "y": 121.0,
+          "w": 69.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_feafdd1ef0353d35",
+        "kind": "line",
+        "points": [
+          [
+            119.0,
+            137.0
+          ],
+          [
+            200.0,
+            137.0
+          ]
+        ],
+        "bbox": {
+          "x": 119.0,
+          "y": 137.0,
+          "w": 81.0,
+          "h": 0.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_21b572e7f840adba",
+        "kind": "line",
+        "points": [
+          [
+            43.0,
+            229.0
+          ],
+          [
+            43.0,
+            147.0
+          ]
+        ],
+        "bbox": {
+          "x": 43.0,
+          "y": 147.0,
+          "w": 0.0,
+          "h": 82.0
+        },
+        "score": 1.0,
+        "attrs": {}
+      },
+      {
+        "id": "pr_86e3821c870a5040",
+        "kind": "polyline",
+        "points": [
+          [
+            471.0,
+            120.0
+          ],
+          [
+            399.0,
+            90.0
+          ],
+          [
+            468.0,
+            229.0
+          ],
+          [
+            46.0,
+            228.0
+          ],
+          [
+            71.0,
+            121.0
+          ],
+          [
+            381.0,
+            150.0
+          ],
+          [
+            381.0,
+            90.0
+          ],
+          [
+            20.0,
+            129.0
+          ],
+          [
+            45.0,
+            231.0
+          ],
+          [
+            470.0,
+            231.0
+          ]
+        ],
+        "bbox": {
+          "x": 20.0,
+          "y": 90.0,
+          "w": 452.0,
+          "h": 142.0
+        },
+        "score": 0.08030555555555556,
+        "attrs": {
+          "area": 7227.5
+        }
+      },
+      {
+        "id": "pr_d9f978ed05c3747e",
+        "kind": "junction",
+        "points": [
+          [
+            247.8000030517578,
+            261.0
+          ]
+        ],
+        "bbox": {
+          "x": 240.52000284194946,
+          "y": 253.71999979019165,
+          "w": 14.5600004196167,
+          "h": 14.5600004196167
+        },
+        "score": 0.6,
+        "attrs": {
+          "radius": 7.28000020980835
+        }
+      },
+      {
+        "id": "pr_f6bf2740efd5eaca",
+        "kind": "junction",
+        "points": [
+          [
+            117.00000762939453,
+            18.600000381469727
+          ]
+        ],
+        "bbox": {
+          "x": 109.72000741958618,
+          "y": 11.320000171661377,
+          "w": 14.5600004196167,
+          "h": 14.5600004196167
+        },
+        "score": 0.6,
+        "attrs": {
+          "radius": 7.28000020980835
+        }
+      },
+      {
+        "id": "pr_4d2ce5729aaa498c",
+        "kind": "junction",
+        "points": [
+          [
+            185.40000915527344,
+            77.4000015258789
+          ]
+        ],
+        "bbox": {
+          "x": 178.1200089454651,
+          "y": 70.12000131607056,
+          "w": 14.5600004196167,
+          "h": 14.5600004196167
+        },
+        "score": 0.6,
+        "attrs": {
+          "radius": 7.28000020980835
+        }
+      },
+      {
+        "id": "pr_a234614fe78660ae",
+        "kind": "junction",
+        "points": [
+          [
+            106.20000457763672,
+            17.400001525878906
+          ]
+        ],
+        "bbox": {
+          "x": 101.92000436782837,
+          "y": 13.120001316070557,
+          "w": 8.5600004196167,
+          "h": 8.5600004196167
+        },
+        "score": 0.6,
+        "attrs": {
+          "radius": 4.28000020980835
+        }
+      },
+      {
+        "id": "pr_42632e67b884bda5",
+        "kind": "junction",
+        "points": [
+          [
+            18.600000381469727,
+            15.000000953674316
+          ]
+        ],
+        "bbox": {
+          "x": 14.200000286102295,
+          "y": 10.600000858306885,
+          "w": 8.800000190734863,
+          "h": 8.800000190734863
+        },
+        "score": 0.6,
+        "attrs": {
+          "radius": 4.400000095367432
+        }
+      },
+      {
+        "id": "pr_60e859eee707eb17",
+        "kind": "junction",
+        "points": [
+          [
+            60.60000228881836,
+            18.600000381469727
+          ]
+        ],
+        "bbox": {
+          "x": 55.960001945495605,
+          "y": 13.960000038146973,
+          "w": 9.280000686645508,
+          "h": 9.280000686645508
+        },
+        "score": 0.6,
+        "attrs": {
+          "radius": 4.640000343322754
+        }
+      }
+    ],
+    "text_spans": []
+  },
+  "domain": "electrical",
+  "metadata": {
+    "vlm_model": "google:gemini-2.5-flash-lite"
+  }
+}

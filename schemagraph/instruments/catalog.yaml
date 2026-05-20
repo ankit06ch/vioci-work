@@ -1,0 +1,160 @@
+# Spacecraft instrument catalog
+#
+# Each top-level key is the canonical id used as the sheet id slug.
+# `aliases` are matched (case-insensitive, substring) against node.label
+# and node.kind to map free-form VLM output onto a known instrument.
+# `telemetry_fields` declares what columns a sheet for this instrument
+# would contain; `units` are pint-compatible strings.
+
+multispectral_scanner:
+  display_name: "Multispectral Scanner"
+  aliases: ["MSS", "Multispectral scanner", "Multispectral Scanner (MSS)", "multispectral"]
+  data_product: raster
+  bands:
+    - { name: "B1", wavelength_nm: [500, 600], gsd_m: 80 }
+    - { name: "B2", wavelength_nm: [600, 700], gsd_m: 80 }
+    - { name: "B3", wavelength_nm: [700, 800], gsd_m: 80 }
+    - { name: "B4", wavelength_nm: [800, 1100], gsd_m: 80 }
+  swath_km: 185
+  telemetry_fields:
+    - { name: "timestamp",  unit: "iso8601",   dtype: "datetime" }
+    - { name: "scene_id",   unit: "string",    dtype: "string"   }
+    - { name: "lat",        unit: "deg",       dtype: "float"    }
+    - { name: "lon",        unit: "deg",       dtype: "float"    }
+    - { name: "B1",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B2",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B3",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B4",         unit: "DN",        dtype: "uint8"    }
+
+thematic_mapper:
+  display_name: "Thematic Mapper"
+  aliases: ["TM", "Thematic Mapper", "Thematic Mapper (TM)", "thematic"]
+  data_product: raster
+  bands:
+    - { name: "B1", wavelength_nm: [450, 520],  gsd_m: 30 }
+    - { name: "B2", wavelength_nm: [520, 600],  gsd_m: 30 }
+    - { name: "B3", wavelength_nm: [630, 690],  gsd_m: 30 }
+    - { name: "B4", wavelength_nm: [760, 900],  gsd_m: 30 }
+    - { name: "B5", wavelength_nm: [1550, 1750],gsd_m: 30 }
+    - { name: "B6", wavelength_nm: [10400, 12500], gsd_m: 120, thermal: true }
+    - { name: "B7", wavelength_nm: [2080, 2350],gsd_m: 30 }
+  swath_km: 185
+  telemetry_fields:
+    - { name: "timestamp",  unit: "iso8601",   dtype: "datetime" }
+    - { name: "scene_id",   unit: "string",    dtype: "string"   }
+    - { name: "lat",        unit: "deg",       dtype: "float"    }
+    - { name: "lon",        unit: "deg",       dtype: "float"    }
+    - { name: "B1",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B2",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B3",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B4",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B5",         unit: "DN",        dtype: "uint8"    }
+    - { name: "B6",         unit: "K",         dtype: "float"    }
+    - { name: "B7",         unit: "DN",        dtype: "uint8"    }
+
+high_gain_antenna:
+  display_name: "High Gain Antenna"
+  aliases: ["HGA", "High gain antenna", "high-gain antenna", "high_gain_antenna"]
+  data_product: rf_telemetry
+  band: "Ku"
+  telemetry_fields:
+    - { name: "timestamp",        unit: "iso8601", dtype: "datetime" }
+    - { name: "downlink_rate",    unit: "Mbit/s",  dtype: "float"    }
+    - { name: "elevation_deg",    unit: "deg",     dtype: "float"    }
+    - { name: "azimuth_deg",      unit: "deg",     dtype: "float"    }
+    - { name: "snr_db",           unit: "dB",      dtype: "float"    }
+    - { name: "ground_station",   unit: "string",  dtype: "string"   }
+
+s_band_antenna:
+  display_name: "S-Band Antenna"
+  aliases: ["S-band antenna", "S band", "S-band", "sband"]
+  data_product: rf_telemetry
+  band: "S"
+  telemetry_fields:
+    - { name: "timestamp",        unit: "iso8601", dtype: "datetime" }
+    - { name: "uplink_rate",      unit: "kbit/s",  dtype: "float"    }
+    - { name: "downlink_rate",    unit: "kbit/s",  dtype: "float"    }
+    - { name: "snr_db",           unit: "dB",      dtype: "float"    }
+    - { name: "ground_station",   unit: "string",  dtype: "string"   }
+
+x_band_antenna:
+  display_name: "X-Band Antenna"
+  aliases: ["X-band antenna", "X band", "X-band", "xband"]
+  data_product: rf_telemetry
+  band: "X"
+  telemetry_fields:
+    - { name: "timestamp",        unit: "iso8601", dtype: "datetime" }
+    - { name: "downlink_rate",    unit: "Mbit/s",  dtype: "float"    }
+    - { name: "snr_db",           unit: "dB",      dtype: "float"    }
+    - { name: "ground_station",   unit: "string",  dtype: "string"   }
+
+solar_array:
+  display_name: "Solar Array"
+  aliases: ["Solar array", "solar_array", "solar panel", "PV array"]
+  data_product: power
+  telemetry_fields:
+    - { name: "timestamp",        unit: "iso8601", dtype: "datetime" }
+    - { name: "voltage",          unit: "volt",    dtype: "float"    }
+    - { name: "current",          unit: "ampere",  dtype: "float"    }
+    - { name: "power",            unit: "watt",    dtype: "float"    }
+    - { name: "temp_c",           unit: "degC",    dtype: "float"    }
+    - { name: "sun_angle_deg",    unit: "deg",     dtype: "float"    }
+
+battery:
+  display_name: "Battery"
+  aliases: ["battery", "Li-ion battery", "spacecraft battery"]
+  data_product: power
+  telemetry_fields:
+    - { name: "timestamp",   unit: "iso8601", dtype: "datetime" }
+    - { name: "voltage",     unit: "volt",    dtype: "float"    }
+    - { name: "current",     unit: "ampere",  dtype: "float"    }
+    - { name: "soc_pct",     unit: "percent", dtype: "float"    }
+    - { name: "temp_c",      unit: "degC",    dtype: "float"    }
+
+gps_receiver:
+  display_name: "GPS Receiver"
+  aliases: ["GPS", "GPS receiver", "GNSS"]
+  data_product: navigation
+  telemetry_fields:
+    - { name: "timestamp", unit: "iso8601", dtype: "datetime" }
+    - { name: "lat",       unit: "deg",     dtype: "float"    }
+    - { name: "lon",       unit: "deg",     dtype: "float"    }
+    - { name: "alt_km",    unit: "km",      dtype: "float"    }
+    - { name: "n_sats",    unit: "count",   dtype: "int"      }
+    - { name: "hdop",      unit: "dimensionless", dtype: "float" }
+
+imu:
+  display_name: "IMU"
+  aliases: ["IMU", "inertial measurement unit", "gyro"]
+  data_product: attitude
+  telemetry_fields:
+    - { name: "timestamp", unit: "iso8601",      dtype: "datetime" }
+    - { name: "wx",        unit: "rad/s",        dtype: "float"    }
+    - { name: "wy",        unit: "rad/s",        dtype: "float"    }
+    - { name: "wz",        unit: "rad/s",        dtype: "float"    }
+    - { name: "ax",        unit: "meter/second**2", dtype: "float" }
+    - { name: "ay",        unit: "meter/second**2", dtype: "float" }
+    - { name: "az",        unit: "meter/second**2", dtype: "float" }
+
+reaction_wheel:
+  display_name: "Reaction Wheel"
+  aliases: ["reaction wheel", "RW", "momentum wheel"]
+  data_product: attitude_control
+  telemetry_fields:
+    - { name: "timestamp",      unit: "iso8601",        dtype: "datetime" }
+    - { name: "speed_rpm",      unit: "rpm",            dtype: "float"    }
+    - { name: "torque_n_m",     unit: "newton*meter",   dtype: "float"    }
+    - { name: "current",        unit: "ampere",         dtype: "float"    }
+    - { name: "temp_c",         unit: "degC",           dtype: "float"    }
+
+star_tracker:
+  display_name: "Star Tracker"
+  aliases: ["star tracker", "ST", "stellar sensor"]
+  data_product: attitude
+  telemetry_fields:
+    - { name: "timestamp", unit: "iso8601",        dtype: "datetime" }
+    - { name: "q0",        unit: "dimensionless",  dtype: "float"    }
+    - { name: "q1",        unit: "dimensionless",  dtype: "float"    }
+    - { name: "q2",        unit: "dimensionless",  dtype: "float"    }
+    - { name: "q3",        unit: "dimensionless",  dtype: "float"    }
+    - { name: "n_stars",   unit: "count",          dtype: "int"      }

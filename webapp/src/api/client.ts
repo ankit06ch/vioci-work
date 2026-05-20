@@ -1,0 +1,200 @@
+import axios, { isAxiosError } from 'axios'
+import type { Diagram, ProjectMeta, SchemaFolder, SimulateResult, WsEvent } from './types'
+import { getStoredToken } from '../state/auth'
+
+export const http = axios.create({
+  baseURL: '',
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 60_000,
+})
+
+http.interceptors.request.use((config) => {
+  const token = getStoredToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+http.interceptors.response.use(
+  (r) => r,
+  (error) => {
+    if (isAxiosError(error) && error.response?.status === 401) {
+      const path = window.location.pathname
+      if (!path.startsWith('/login') && !path.startsWith('/signup')) {
+        window.location.href = `/login?next=${encodeURIComponent(path)}`
+      }
+    }
+    return Promise.reject(error)
+  },
+)
+
+/** User-facing message for failed API calls (network, 404, FastAPI detail, …). */
+export function formatApiError(e: unknown): string {
+  if (isAxiosError(e)) {
+    if (e.code === 'ECONNABORTED') {
+      return 'Request timed out — is the API responding on port 8000?'
+    }
+    if (e.response == null) {
+      return 'Cannot reach API — start the backend (port 8000) and use `npm run dev` so /api is proxied.'
+    }
+    const data = e.response.data as { detail?: unknown } | undefined
+    const d = data?.detail
+    if (typeof d === 'string') return d
+    if (Array.isArray(d)) {
+      const msg = d
+        .map((x) =>
+          typeof x === 'object' && x && 'msg' in x ? String((x as { msg: string }).msg) : String(x),
+        )
+        .join('; ')
+      return msg || `${e.response.status} ${e.response.statusText}`
+    }
+    if (d != null && typeof d === 'object') {
+      return JSON.stringify(d)
+    }
+    return `${e.response.status} ${e.response.statusText || e.message}`
+  }
+  if (e instanceof Error) return e.message
+  return String(e)
+}
+
+export async function listFolders(): Promise<SchemaFolder[]> {
+  const { data } = await http.get<SchemaFolder[]>('/api/folders')
+  return data
+}
+
+export async function createFolder(name: string, parentId?: string | null): Promise<SchemaFolder> {
+  const { data } = await http.post<SchemaFolder>('/api/folders', {
+    name,
+    parent_id: parentId ?? null,
+  })
+  return data
+}
+
+export async function deleteFolder(folderId: string): Promise<void> {
+  await http.delete(`/api/folders/${folderId}`)
+}
+
+export async function moveProjectToFolder(
+  projectId: string,
+  folderId: string | null,
+): Promise<ProjectMeta> {
+  const { data } = await http.patch<ProjectMeta>(`/api/projects/${projectId}/folder`, {
+    folder_id: folderId,
+  })
+  return data
+}
+
+export async function uploadProjects(
+  files: File[],
+  folderId?: string | null,
+): Promise<ProjectMeta[]> {
+  const fd = new FormData()
+  for (const f of files) fd.append('files', f)
+  if (folderId) fd.append('folder_id', folderId)
+  const { data } = await http.post<{ projects: ProjectMeta[] }>('/api/projects/upload', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+  return data.projects
+}
+
+export async function listProjects(): Promise<ProjectMeta[]> {
+  const { data } = await http.get<ProjectMeta[]>('/api/projects')
+  return data
+}
+
+export async function getProject(id: string): Promise<ProjectMeta> {
+  const { data } = await http.get<ProjectMeta>(`/api/projects/${id}`)
+  return data
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  await http.delete(`/api/projects/${id}`)
+}
+
+export async function getDiagram(id: string): Promise<Diagram> {
+  const { data } = await http.get<Diagram>(`/api/projects/${id}/diagram`)
+  return data
+}
+
+export function imageUrl(projectId: string): string {
+  return `/api/projects/${projectId}/image`
+}
+
+export async function queueParse(projectId: string): Promise<void> {
+  await http.post(`/api/projects/${projectId}/parse`, {})
+}
+
+export function openProjectEvents(projectId: string, onMessage: (e: WsEvent) => void): WebSocket {
+  const p = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  const token = getStoredToken()
+  const q = token ? `?token=${encodeURIComponent(token)}` : ''
+  const ws = new WebSocket(`${p}://${window.location.host}/api/projects/${projectId}/events${q}`)
+  ws.onmessage = (ev) => {
+    try {
+      onMessage(JSON.parse(ev.data as string) as WsEvent)
+    } catch {
+      /* ignore */
+    }
+  }
+  return ws
+}
+
+export async function uploadSheetCsv(projectId: string, nodeId: string, file: File): Promise<void> {
+  const fd = new FormData()
+  fd.append('file', file)
+  await http.post(`/api/projects/${projectId}/sheets/${nodeId}/upload`, fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
+}
+
+export async function fetchSheetRows(
+  projectId: string,
+  nodeId: string,
+  limit = 50,
+): Promise<Record<string, unknown>[]> {
+  const { data } = await http.get<{ rows: Record<string, unknown>[] }>(
+    `/api/projects/${projectId}/sheets/${nodeId}/rows`,
+    { params: { limit } },
+  )
+  return data.rows
+}
+
+export async function fetchSheetSummary(projectId: string, nodeId: string): Promise<Record<string, unknown>> {
+  const { data } = await http.get(`/api/projects/${projectId}/sheets/${nodeId}/summary`)
+  return data as Record<string, unknown>
+}
+
+export async function chatDiagram(projectId: string, message: string): Promise<string> {
+  const { data } = await http.post<{ reply: string }>(`/api/projects/${projectId}/chat`, { message })
+  return data.reply
+}
+
+export async function chatNode(projectId: string, nodeId: string, message: string): Promise<string> {
+  const { data } = await http.post<{ reply: string }>(
+    `/api/projects/${projectId}/chat/${nodeId}`,
+    { message },
+  )
+  return data.reply
+}
+
+export async function runSimulate(
+  projectId: string,
+  engine: string,
+  overrides: Record<string, unknown>,
+): Promise<SimulateResult> {
+  const { data } = await http.post<SimulateResult>(`/api/projects/${projectId}/simulate`, {
+    engine,
+    overrides,
+  })
+  return data
+}
+
+export async function runSweep(
+  projectId: string,
+  engine: string,
+  axis: Record<string, unknown[]>,
+): Promise<{ overrides: Record<string, unknown>; result?: SimulateResult; error?: string }[]> {
+  const { data } = await http.post(`/api/projects/${projectId}/sweep`, { engine, axis })
+  return data
+}

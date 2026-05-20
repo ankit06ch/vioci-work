@@ -1,0 +1,26 @@
+{
+  "@context": {
+    "@version": 1.1,
+    "sg": "https://schemagraph.dev/ns#",
+    "id": "@id",
+    "type": "@type",
+    "label": "sg:label",
+    "kind": "sg:kind",
+    "domain": "sg:domain",
+    "confidence": "sg:confidence",
+    "properties": { "@id": "sg:properties", "@container": "@index" },
+    "ports": { "@id": "sg:ports", "@container": "@set" },
+    "nodes": { "@id": "sg:nodes", "@container": "@set" },
+    "edges": { "@id": "sg:edges", "@container": "@set" },
+    "constraints": { "@id": "sg:constraints", "@container": "@set" },
+    "equations": { "@id": "sg:equations", "@container": "@set" },
+    "datasets": { "@id": "sg:datasets", "@container": "@set" },
+    "parameters": { "@id": "sg:parameters", "@container": "@set" },
+    "source": "sg:source",
+    "target": "sg:target",
+    "directed": "sg:directed",
+    "value": "sg:value",
+    "unit": "sg:unit",
+    "raw": "sg:raw"
+  }
+}

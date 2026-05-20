@@ -1,0 +1,142 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "schemagraph"
+version = "0.1.0"
+description = "Ingest hand-drawn and digital schematics, diagrams, and graphs and convert them into structured, machine-readable representations (NetworkX / GraphML / JSON-LD) with a plugin architecture for domain-specific simulation exporters."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "schemagraph contributors" }]
+keywords = [
+    "schematic",
+    "diagram",
+    "graph-extraction",
+    "computer-vision",
+    "multimodal",
+    "simulation",
+    "physics",
+    "computational-graph",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+dependencies = [
+    "pydantic>=2.5",
+    "pydantic-settings>=2.1",
+    "typer>=0.9",
+    "rich>=13.6",
+    "numpy>=1.24",
+    "pillow>=10.0",
+    "pypdf>=4.0",
+    "cairosvg>=2.7",
+    "opencv-python>=4.8",
+    "sympy>=1.12",
+    "pint>=0.23",
+    "networkx>=3.2",
+    "rdflib>=7.0",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.30"]
+anthropic = ["anthropic>=0.30"]
+google = ["google-genai>=0.3"]
+ocr-tesseract = ["pytesseract>=0.3.10"]
+ocr-paddle = ["paddleocr>=2.7"]
+all-providers = ["openai>=1.30", "anthropic>=0.30", "google-genai>=0.3"]
+web = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "python-multipart>=0.0.9",
+    "sqlmodel>=0.0.16",
+    "httpx>=0.27",
+    "bcrypt>=4.1",
+    "python-jose[cryptography]>=3.3",
+    "email-validator>=2.0",
+]
+cloud = [
+    "psycopg[binary]>=3.1",
+    "supabase>=2.4",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+    "mypy>=1.8",
+    "types-PyYAML",
+]
+
+[project.scripts]
+schemagraph = "schemagraph.cli:app"
+
+[project.entry-points."schemagraph.exporters"]
+networkx = "schemagraph.export.networkx_exporter:NetworkXExporter"
+graphml = "schemagraph.export.graphml_exporter:GraphMLExporter"
+jsonld = "schemagraph.export.jsonld_exporter:JSONLDExporter"
+spice = "schemagraph.domain_exporters.spice_exporter:SPICEExporter"
+urdf = "schemagraph.domain_exporters.urdf_exporter:URDFExporter"
+modelica = "schemagraph.domain_exporters.modelica_exporter:ModelicaExporter"
+fenics = "schemagraph.domain_exporters.fenics_exporter:FEniCSExporter"
+openfoam = "schemagraph.domain_exporters.openfoam_exporter:OpenFOAMExporter"
+orbital = "schemagraph.domain_exporters.orbital_exporter:OrbitalExporter"
+
+[project.entry-points."schemagraph.providers"]
+openai = "schemagraph.vlm.openai_provider:OpenAIProvider"
+anthropic = "schemagraph.vlm.anthropic_provider:AnthropicProvider"
+google = "schemagraph.vlm.google_provider:GoogleProvider"
+
+[project.entry-points."schemagraph.annotators"]
+electrical = "schemagraph.physics.annotators:ElectricalAnnotator"
+mechanical = "schemagraph.physics.annotators:MechanicalAnnotator"
+fluid = "schemagraph.physics.annotators:FluidAnnotator"
+thermal = "schemagraph.physics.annotators:ThermalAnnotator"
+control = "schemagraph.physics.annotators:ControlAnnotator"
+graph = "schemagraph.physics.annotators:GraphAnnotator"
+generic = "schemagraph.physics.annotators:GenericAnnotator"
+spacecraft = "schemagraph.instruments.annotator:SpacecraftAnnotator"
+
+[project.entry-points."schemagraph.simulators"]
+analytic_rc = "schemagraph.simulate.analytic_rc:AnalyticRCSimulator"
+ngspice = "schemagraph.simulate.ngspice_sim:NgSpiceSimulator"
+fenics = "schemagraph.simulate.fenics_sim:FEniCSSimulator"
+openfoam = "schemagraph.simulate.openfoam_sim:OpenFOAMSimulator"
+
+[tool.hatch.build.targets.wheel]
+packages = ["schemagraph"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"schemagraph/instruments/catalog.yaml" = "schemagraph/instruments/catalog.yaml"
+
+[tool.hatch.build.targets.sdist]
+include = ["schemagraph", "tests", "docs", "examples", "README.md"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "RUF"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

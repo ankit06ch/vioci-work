@@ -1,0 +1,26 @@
+---
+description: Commit and push to GitHub after completing meaningful changes
+alwaysApply: true
+---
+
+# Commit to GitHub after changes
+
+When you finish a task or a coherent set of edits (feature, fix, refactor, or docs), **commit and push to GitHub** so the user can review history and backtrack.
+
+## Workflow
+
+1. After changes are done and verified (build/tests when relevant), run `git status` and `git diff`.
+2. **Do not commit** secrets (`.env`, credentials, API keys) or generated artifacts already in `.gitignore`.
+3. Stage only relevant files; write a concise commit message (1–2 sentences, focus on *why*).
+4. **Push** to `origin` on the current branch (create branch + `-u` if needed).
+5. If there is nothing to commit, skip.
+
+## Remote
+
+- Default remote: `https://github.com/ankit06ch/vioci-work.git` (branch `main` unless the user specifies otherwise).
+- If push fails (auth, conflicts), report the error and the exact fix; do not force-push to `main` unless the user explicitly asks.
+
+## Exceptions
+
+- Do not commit empty changes or broken WIP unless the user asks to save WIP on a named branch.
+- Do not amend or force-push unless the user explicitly requests it.

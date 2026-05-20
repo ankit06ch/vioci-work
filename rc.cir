@@ -1,0 +1,4 @@
+* schemagraph SPICE export :: dgm_4d8f0279e40941f6
+R1 0 0 R = 10kΩ
+C1 0 0 C = 1μF
+.end

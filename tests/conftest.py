@@ -1,0 +1,102 @@
+"""Shared pytest fixtures."""
+
+from __future__ import annotations
+
+import io
+
+import pytest
+
+
+@pytest.fixture
+def small_rc_circuit_png() -> bytes:
+    """Tiny synthetic image of an RC-like sketch.
+
+    Two rectangles ("R" and "C") connected by horizontal lines, with a
+    bottom rail. Used by CV tests to ensure primitives are detected.
+    """
+    from PIL import Image, ImageDraw
+
+    img = Image.new("RGB", (400, 200), "white")
+    d = ImageDraw.Draw(img)
+    # Boxes (rectangles) with a small gap between wires & boxes so connected
+    # components are separable, matching well-drawn schematic conventions.
+    d.rectangle([80, 70, 140, 110], outline="black", width=3)  # resistor
+    d.rectangle([260, 70, 320, 110], outline="black", width=3)  # capacitor
+    # wires
+    d.line([20, 90, 78, 90], fill="black", width=3)
+    d.line([142, 90, 258, 90], fill="black", width=3)
+    d.line([322, 90, 380, 90], fill="black", width=3)
+    # ground rail
+    d.line([20, 160, 380, 160], fill="black", width=3)
+    d.line([20, 92, 20, 160], fill="black", width=3)
+    d.line([380, 92, 380, 160], fill="black", width=3)
+
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+@pytest.fixture
+def fake_vlm_payload() -> dict:
+    """A VLM-like payload matching small_rc_circuit_png."""
+    return {
+        "_producer": "fake:test-model",
+        "domain": "electrical",
+        "nodes": [
+            {
+                "id": "R1",
+                "kind": "resistor",
+                "label": "10k",
+                "anchor": [110, 90],
+                "properties": {"value": "10kΩ"},
+                "confidence": 0.95,
+            },
+            {
+                "id": "C1",
+                "kind": "capacitor",
+                "label": "1uF",
+                "anchor": [290, 90],
+                "properties": {"value": "1uF"},
+                "confidence": 0.95,
+            },
+            {
+                "id": "GND",
+                "kind": "ground",
+                "label": "GND",
+                "anchor": [200, 160],
+                "confidence": 0.9,
+            },
+        ],
+        "edges": [
+            {
+                "source": "R1",
+                "target": "C1",
+                "kind": "wire",
+                "polyline": [[140, 90], [260, 90]],
+                "confidence": 0.9,
+            },
+            {
+                "source": "C1",
+                "target": "GND",
+                "kind": "wire",
+                "polyline": [[290, 110], [290, 160]],
+                "confidence": 0.8,
+            },
+        ],
+        "constraints": [
+            {
+                "kind": "boundary_condition",
+                "targets": ["GND"],
+                "expression": "V = 0",
+            }
+        ],
+        "equations": [{"raw": "tau = R*C"}],
+        "parameters": [
+            {
+                "name": "R",
+                "default": {"value": 10000.0, "unit": "ohm"},
+                "bounds": [1000.0, 1000000.0],
+                "targets": ["R1.value"],
+            }
+        ],
+    }
