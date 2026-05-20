@@ -3,6 +3,8 @@ import type {
   AnnotationsDocument,
   Diagram,
   PartAnnotation,
+  LaunchCompatResult,
+  LaunchVehicleMeta,
   ProjectMeta,
   SchemaFolder,
   SchemaRegistryDocument,
@@ -333,4 +335,20 @@ export function schemaRegistryCsvUrl(
   table: 'components' | 'dependencies' | 'properties',
 ): string {
   return `/api/projects/${projectId}/schema-registry/csv/${table}`
+}
+
+export async function listLaunchVehicles(): Promise<LaunchVehicleMeta[]> {
+  const { data } = await http.get<LaunchVehicleMeta[]>('/api/launch-vehicles')
+  return data
+}
+
+export async function runLaunchCompat(
+  projectId: string,
+  body: { vehicle_id: string; orbit: string; profile: Record<string, string | number> },
+): Promise<LaunchCompatResult> {
+  const { data } = await http.post<LaunchCompatResult>(
+    `/api/projects/${projectId}/launch-compat`,
+    body,
+  )
+  return data
 }

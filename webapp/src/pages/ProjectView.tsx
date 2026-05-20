@@ -465,7 +465,15 @@ export function ProjectView() {
     }
 
     if (activeTabId === 'launch') {
-      return <LaunchCompatPanel compact hideHeader />
+      return (
+        <LaunchCompatPanel
+          projectId={projectId}
+          profile={satelliteProfile}
+          annotations={annotations}
+          compact
+          hideHeader
+        />
+      )
     }
 
     if (activeTabId === 'simulation') {

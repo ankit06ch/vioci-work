@@ -185,3 +185,62 @@ export interface SimulateResult {
     series: { name: string; values: number[] }[]
   }[]
 }
+
+export interface LaunchVehicleMeta {
+  id: string
+  name: string
+  provider: string
+  leo_capacity_kg: number
+  gto_capacity_kg: number
+  fairing_diameter_m: number
+}
+
+export interface LaunchCompatCheck {
+  id: string
+  category: string
+  title: string
+  status: 'pass' | 'warn' | 'fail'
+  value: string
+  limit: string
+  detail: string
+}
+
+export interface LaunchStressHotspot {
+  col: number
+  row: number
+  x: number
+  y: number
+  stress_mpa: number
+  power_w: number
+  stress_norm: number
+  power_norm: number
+}
+
+export interface LaunchCompatResult {
+  vehicle_id: string
+  vehicle_name: string
+  orbit: string
+  overall_score: number
+  overall_status: 'nominal' | 'review' | 'caution' | 'fail'
+  payload_mass_kg: number
+  mass_source: string
+  capacity_kg: number
+  mass_margin_pct: number
+  mass_properties: Record<string, number>
+  category_scores: Record<string, number>
+  checks: LaunchCompatCheck[]
+  warnings: { level: string; text: string; check_id: string }[]
+  stress_field: {
+    cols: number
+    rows: number
+    stress_mpa: number[][]
+    power_w: number[][]
+    max_stress_mpa: number
+    max_power_w: number
+    cg: { x: number; y: number }
+    first_bending_hz: number
+    hotspots: LaunchStressHotspot[]
+    power_hotspots: LaunchStressHotspot[]
+  }
+  simulation: { engine: string; fea_mode: string; notes: string }
+}

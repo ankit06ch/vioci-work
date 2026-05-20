@@ -178,3 +178,38 @@ class SchemaRegistrySqlResponse(BaseModel):
     row_count: int = 0
     mutated: bool = False
     message: str | None = None
+
+
+class LaunchCompatRequest(BaseModel):
+    vehicle_id: str = "f9"
+    orbit: str = "leo"
+    profile: dict[str, Any] = Field(default_factory=dict)
+
+
+class LaunchVehicleOut(BaseModel):
+    id: str
+    name: str
+    provider: str
+    leo_capacity_kg: float
+    gto_capacity_kg: float
+    fairing_diameter_m: float
+
+
+class LaunchCompatResponse(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    vehicle_id: str
+    vehicle_name: str
+    orbit: str
+    overall_score: int
+    overall_status: str
+    payload_mass_kg: float
+    mass_source: str
+    capacity_kg: float
+    mass_margin_pct: float
+    mass_properties: dict[str, Any]
+    category_scores: dict[str, int]
+    checks: list[dict[str, Any]]
+    warnings: list[dict[str, Any]]
+    stress_field: dict[str, Any]
+    simulation: dict[str, Any]

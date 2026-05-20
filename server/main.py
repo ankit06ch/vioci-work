@@ -15,6 +15,7 @@ from server.routes import (
     auth,
     chat,
     folders,
+    launch_compat,
     parse,
     projects,
     schema_registry,
@@ -120,4 +121,5 @@ app.include_router(parse.router, prefix="/api")
 app.include_router(sheets.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")
 app.include_router(simulate.router, prefix="/api")
+app.include_router(launch_compat.router, prefix="/api")
 app.include_router(ws.router, prefix="/api")
