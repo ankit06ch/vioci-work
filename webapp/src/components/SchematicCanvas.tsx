@@ -24,12 +24,16 @@ type Props = {
   onImageLoad?: (w: number, h: number) => void
   /** When true, left-drag on empty canvas pans (select mode). */
   panOnDrag?: boolean
+  /** When true, the SVG receives pointer events (draw tools). */
+  svgInteractive?: boolean
   children?: (api: SchematicCanvasApi) => ReactNode
   cornerLabel?: string
-  onSvgMouseDown?: (e: React.MouseEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
-  onSvgMouseMove?: (e: React.MouseEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
-  onSvgMouseUp?: (e: React.MouseEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
-  onSvgMouseLeave?: (e: React.MouseEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
+  onSvgPointerDown?: (e: React.PointerEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
+  onSvgPointerMove?: (e: React.PointerEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
+  onSvgPointerUp?: (e: React.PointerEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
+  onSvgPointerLeave?: (e: React.PointerEvent<SVGSVGElement>, api: SchematicCanvasApi) => void
+  /** Left-click on empty viewport (outside schematic); e.g. clear selection in select mode. */
+  onPanSurfacePointerDown?: () => void
 }
 
 export function SchematicCanvas({
@@ -38,12 +42,14 @@ export function SchematicCanvas({
   naturalSize,
   onImageLoad,
   panOnDrag = true,
+  svgInteractive = false,
   children,
   cornerLabel,
-  onSvgMouseDown,
-  onSvgMouseMove,
-  onSvgMouseUp,
-  onSvgMouseLeave,
+  onSvgPointerDown,
+  onSvgPointerMove,
+  onSvgPointerUp,
+  onSvgPointerLeave,
+  onPanSurfacePointerDown,
 }: Props) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
@@ -144,6 +150,13 @@ export function SchematicCanvas({
     (panOnDrag && e.button === 0 && (e.target as HTMLElement).dataset.panSurface === '1')
 
   const onPointerDown = (e: React.PointerEvent) => {
+    if (
+      e.button === 0 &&
+      onPanSurfacePointerDown &&
+      (e.target as HTMLElement).dataset.panSurface === '1'
+    ) {
+      onPanSurfacePointerDown()
+    }
     if (!canPanDrag(e)) return
     e.preventDefault()
     panDrag.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y }
@@ -220,14 +233,21 @@ export function SchematicCanvas({
           />
           {naturalSize.w > 0 ? (
             <svg
-              className="schematic-canvas-svg"
+              className={`schematic-canvas-svg${svgInteractive ? ' schematic-canvas-svg--interactive' : ''}`}
               viewBox={`0 0 ${naturalSize.w} ${naturalSize.h}`}
               width={naturalSize.w}
               height={naturalSize.h}
-              onMouseDown={onSvgMouseDown ? (e) => onSvgMouseDown(e, api) : undefined}
-              onMouseMove={onSvgMouseMove ? (e) => onSvgMouseMove(e, api) : undefined}
-              onMouseUp={onSvgMouseUp ? (e) => onSvgMouseUp(e, api) : undefined}
-              onMouseLeave={onSvgMouseLeave ? (e) => onSvgMouseLeave(e, api) : undefined}
+              onPointerDown={
+                onSvgPointerDown
+                  ? (e) => {
+                      if (e.button !== 0) return
+                      onSvgPointerDown(e, api)
+                    }
+                  : undefined
+              }
+              onPointerMove={onSvgPointerMove ? (e) => onSvgPointerMove(e, api) : undefined}
+              onPointerUp={onSvgPointerUp ? (e) => onSvgPointerUp(e, api) : undefined}
+              onPointerLeave={onSvgPointerLeave ? (e) => onSvgPointerLeave(e, api) : undefined}
             >
               {children?.(api)}
             </svg>

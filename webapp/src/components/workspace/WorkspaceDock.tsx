@@ -147,14 +147,22 @@ function DockNodeView({ node, projectId, ...props }: NodeProps) {
 
   return (
     <Group orientation={orientation} id={groupId} className="dock-split-group">
-      {node.children.map((child, i) => (
+      {node.children.map((child, i) => {
+        const isTerminalRail = child.type === 'leaf' && child.id === RAIL_LEAF_TERMINAL
+        return (
         <Fragment key={child.type === 'leaf' ? child.id : child.id}>
           {i > 0 ? <Separator className="dock-resize-handle" /> : null}
-          <Panel id={`${groupId}-p${i}`} minSize={10} defaultSize={defaultEach} className="dock-panel">
+          <Panel
+            id={`${groupId}-p${i}`}
+            minSize={isTerminalRail ? 22 : 10}
+            defaultSize={isTerminalRail ? 34 : defaultEach}
+            className="dock-panel"
+          >
             <DockNodeView node={child} projectId={projectId} {...props} />
           </Panel>
         </Fragment>
-      ))}
+        )
+      })}
     </Group>
   )
 }

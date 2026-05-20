@@ -298,7 +298,7 @@ export function mergeOpenTabsIntoLayout(layout: DockNode, openTabs: string[]): D
   if (!findFirstContentLeaf(next)) {
     next = layoutWithEmptyWorkspace()
   }
-  return next
+  return ensureTerminalRailInLayout(next)
 }
 
 function mapLeaves(node: DockNode, fn: (leaf: DockLeaf) => DockLeaf): DockNode {
@@ -430,13 +430,29 @@ export function formatTabPlacement(layout: DockNode, tabId: string, label: strin
   return `Pulling up ${label} in pane ${paneNum}${stack}.`
 }
 
+/** Keep the terminal rail pane in the layout (never dropped by prune/split). */
+export function ensureTerminalRailInLayout(layout: DockNode): DockNode {
+  if (findLeaf(layout, RAIL_LEAF_TERMINAL)) return layout
+  const main = findMainPaneRoot(layout)
+  if (!main) {
+    return buildInitialLayout(['diagram'])
+  }
+  return {
+    type: 'split',
+    id: 'root',
+    direction: 'horizontal',
+    children: [main, terminalRail()],
+  }
+}
+
 export function openTabInLayout(
   layout: DockNode,
   tabId: string,
-  options?: { leafId?: string; label?: string },
+  options?: { leafId?: string; label?: string; /** When false, open tab but keep terminal rail focused */ focusContentPane?: boolean },
 ): { layout: DockNode; message: string } {
   const label = options?.label ?? tabId
-  let next = layout
+  const focusContent = options?.focusContentPane !== false
+  let next = ensureTerminalRailInLayout(layout)
   if (tabId === 'terminal') {
     const rail = findLeaf(next, RAIL_LEAF_TERMINAL)
     if (rail) next = setLeafActive(next, rail.id, 'terminal')
@@ -444,8 +460,14 @@ export function openTabInLayout(
     next = ensureTabOpen(next, tabId)
     if (options?.leafId) next = moveTabToLeaf(next, tabId, options.leafId, 'center')
     const holder = findLeafHoldingTab(next, tabId)
-    if (holder) next = setLeafActive(next, holder.id, tabId)
+    if (holder && focusContent) {
+      next = setLeafActive(next, holder.id, tabId)
+    } else {
+      const rail = findLeaf(next, RAIL_LEAF_TERMINAL)
+      if (rail) next = setLeafActive(next, rail.id, 'terminal')
+    }
   }
+  next = ensureTerminalRailInLayout(next)
   return { layout: next, message: formatTabPlacement(next, tabId, label) }
 }
 

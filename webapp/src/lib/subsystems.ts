@@ -1,4 +1,5 @@
 import type { DiagramNode } from '../api/types'
+import { componentDiagramNodes } from './schematicLabels'
 
 export const SUBSYSTEMS = [
   'Propulsion',
@@ -86,11 +87,11 @@ export function nodesForSubsystem(
   nodes: DiagramNode[],
   subsystem: Subsystem,
 ): DiagramNode[] {
-  return nodes.filter((n) => classifySubsystem(n) === subsystem)
+  return componentDiagramNodes(nodes).filter((n) => classifySubsystem(n) === subsystem)
 }
 
 export function subsystemCounts(nodes: DiagramNode[]): Record<Subsystem, number> {
   const counts = Object.fromEntries(SUBSYSTEMS.map((s) => [s, 0])) as Record<Subsystem, number>
-  for (const n of nodes) counts[classifySubsystem(n)] += 1
+  for (const n of componentDiagramNodes(nodes)) counts[classifySubsystem(n)] += 1
   return counts
 }

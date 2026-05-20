@@ -10,7 +10,18 @@ from fastapi import FastAPI, Request
 log = logging.getLogger("vioci.api")
 
 from server import events
-from server.routes import annotations, auth, chat, folders, parse, projects, sheets, simulate, ws
+from server.routes import (
+    annotations,
+    auth,
+    chat,
+    folders,
+    parse,
+    projects,
+    schema_registry,
+    sheets,
+    simulate,
+    ws,
+)
 from server.cloud_files import cloud_storage_enabled
 from server.settings import get_server_settings
 from server.state import init_db
@@ -104,6 +115,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(folders.router, prefix="/api")
 app.include_router(projects.router, prefix="/api")
 app.include_router(annotations.router, prefix="/api")
+app.include_router(schema_registry.router, prefix="/api")
 app.include_router(parse.router, prefix="/api")
 app.include_router(sheets.router, prefix="/api")
 app.include_router(chat.router, prefix="/api")

@@ -16,12 +16,12 @@ from server.annotation_service import (
     _bbox_from_node,
     _humanize_name,
     _node_display_name,
+    is_axis_reference_label,
     seed_from_diagram,
 )
 
 # Text-like OCR / junk — never become standalone parts
 _BAD_NAMES = frozenset({"label", "part", "text", "img", "image", "ref", "note", "title"})
-_AXIS_LABEL = re.compile(r"^[+-][XYZ]$", re.IGNORECASE)
 _JUNK_LABEL_PHRASES = frozenset(
     {
         "orbit direction",
@@ -75,6 +75,8 @@ def _clean_ocr_name(text: str) -> str | None:
     t = re.sub(r"\s+", " ", text.strip())
     if len(t) < 2:
         return None
+    if is_axis_reference_label(t):
+        return None
     low = t.lower()
     if low in _BAD_NAMES:
         return None
@@ -118,10 +120,10 @@ def _is_component_label(name: str) -> bool:
     t = re.sub(r"\s+", " ", name.strip())
     if len(t) < 4:
         return False
+    if is_axis_reference_label(t):
+        return False
     low = t.lower()
     if low in _BAD_NAMES or low in _JUNK_LABEL_PHRASES:
-        return False
-    if _AXIS_LABEL.match(t):
         return False
     return True
 
@@ -638,7 +640,7 @@ def _add_cv_components(
         if any(p.bbox and _iou(p.bbox, expanded) > 0.35 for p in out):
             continue
         name = _best_ocr_name_for_part(expanded, ocr) or _infer_name_from_neighbors(expanded, ocr)
-        if not name:
+        if not name or is_axis_reference_label(name):
             continue
         out.append(
             PartAnnotation(
@@ -704,6 +706,8 @@ def auto_detect_annotations(
         if p.bbox and _is_huge_bbox(p.bbox, img_w, img_h):
             continue
         if p.name.lower() in _BAD_NAMES:
+            continue
+        if is_axis_reference_label(p.name):
             continue
         if p.node_id and p.node_id in {
             nid

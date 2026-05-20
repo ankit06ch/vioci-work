@@ -32,8 +32,10 @@ import { detectTerminalIntent } from '../lib/terminalIntents'
 import type { PendingQuestion, SatelliteProfile } from '../lib/satelliteProfile'
 import { WORKSPACE_TAB_CATALOG, WORKSPACE_TAB_LABELS } from '../lib/workspaceTabs'
 import { SatelliteProfilePanel } from '../components/SatelliteProfilePanel'
+import { SchemaRegistryPanel } from '../components/SchemaRegistryPanel'
 import { SUBSYSTEMS, type Subsystem } from '../lib/subsystems'
 import { useSelectionStore } from '../state/project'
+import { useSchemaRegistryTerminalStore } from '../state/schemaRegistryTerminal'
 
 type ContentTab = {
   id: string
@@ -213,13 +215,19 @@ export function ProjectView() {
   }, [dynamicTabs])
 
   const openTab = useCallback(
-    (tabId: string, label?: string, leafId?: string): string => {
+    (
+      tabId: string,
+      label?: string,
+      leafId?: string,
+      opts?: { focusContentPane?: boolean },
+    ): string => {
       if (tabId !== 'terminal') {
         setOpenTabIds((ids) => (ids.includes(tabId) ? ids : [...ids, tabId]))
       }
       return dock.openTabWithMessage(tabId, {
         leafId,
         label: label ?? WORKSPACE_TAB_LABELS[tabId] ?? tabId,
+        focusContentPane: opts?.focusContentPane,
       })
     },
     [dock],
@@ -268,6 +276,15 @@ export function ProjectView() {
       }
       if (intent.type === 'graph') {
         return { continueCopilot: false, sysLines: [openTab('graph')] }
+      }
+      if (intent.type === 'schema-data') {
+        return {
+          continueCopilot: false,
+          sysLines: [
+            openTab('schema-data'),
+            'Schema registry — query components, dependencies, and properties; CSV files sync on upload and parse.',
+          ],
+        }
       }
       if (intent.type === 'mission') {
         return { continueCopilot: false, sysLines: [openTab('mission')] }
@@ -319,11 +336,25 @@ export function ProjectView() {
     [openTab, annotations, selectedId],
   )
 
-  const handleWorkspaceAction = useCallback((action: WorkspaceTerminalAction) => {
-    if (action.type === 'store-dynamic-result') {
-      setDynamicContent((c) => ({ ...c, [action.tabId]: action.text }))
-    }
-  }, [])
+  const pushTerminalSql = useSchemaRegistryTerminalStore((s) => s.pushTerminalSql)
+
+  const handleWorkspaceAction = useCallback(
+    (action: WorkspaceTerminalAction) => {
+      if (action.type === 'store-dynamic-result') {
+        setDynamicContent((c) => ({ ...c, [action.tabId]: action.text }))
+        return
+      }
+      if (action.type === 'schema-registry-sql') {
+        pushTerminalSql(projectId, {
+          sql: action.sql,
+          result: action.result ?? null,
+          error: action.error ?? null,
+        })
+        setOpenTabIds((ids) => (ids.includes('schema-data') ? ids : [...ids, 'schema-data']))
+      }
+    },
+    [projectId, pushTerminalSql],
+  )
 
   const statusBadge =
     meta?.parse_status === 'error'
@@ -337,11 +368,6 @@ export function ProjectView() {
       return (
         <div className="mission-terminal-panel terminal-panel dock-terminal">
           <div className="terminal-header">
-            <div className="terminal-dots">
-              <span />
-              <span />
-              <span />
-            </div>
             <span className="terminal-title">vioci-integration — ai copilot</span>
           </div>
           <div className="terminal-body mission-terminal-body">
@@ -352,7 +378,9 @@ export function ProjectView() {
             onWorkspaceMessage={handleWorkspaceMessage}
             onWorkspaceAction={handleWorkspaceAction}
             onOpenWorkspaceTab={(tabId) =>
-              openTab(tabId, WORKSPACE_TAB_LABELS[tabId] ?? tabId)
+              openTab(tabId, WORKSPACE_TAB_LABELS[tabId] ?? tabId, undefined, {
+                focusContentPane: false,
+              })
             }
           />
           </div>
@@ -427,6 +455,12 @@ export function ProjectView() {
         <p className="muted" style={{ padding: '1rem' }}>
           Conversion in progress — dependency graph unlocks when the schematic is ready.
         </p>
+      )
+    }
+
+    if (activeTabId === 'schema-data') {
+      return (
+        <SchemaRegistryPanel projectId={projectId} parseStatus={meta?.parse_status} />
       )
     }
 

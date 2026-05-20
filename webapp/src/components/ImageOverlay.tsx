@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { DiagramNode } from '../api/types'
 import { classifySubsystem, type Subsystem } from '../lib/subsystems'
+import { componentDiagramNodes } from '../lib/schematicLabels'
 import { ProjectImage } from './ProjectImage'
 import { useSelectionStore } from '../state/project'
 
@@ -87,7 +88,7 @@ export function ImageOverlay({ projectId, nodes, activeSubsystem, onDropCsv }: P
           viewBox={`0 0 ${dim.w} ${dim.h}`}
           preserveAspectRatio="xMidYMid meet"
         >
-          {nodes.map((n) => {
+          {componentDiagramNodes(nodes).map((n) => {
             const bb = bboxForNode(n)
             if (!bb) return null
             const inSubsystem =

@@ -1,5 +1,6 @@
 import type { DiagramNode } from '../api/types'
 import { classifySubsystem, type Subsystem } from '../lib/subsystems'
+import { componentDiagramNodes, nodeDisplayTitle } from '../lib/schematicLabels'
 import { useSelectionStore } from '../state/project'
 
 type Props = {
@@ -7,19 +8,13 @@ type Props = {
   subsystem: Subsystem
 }
 
-function nodeTitle(n: DiagramNode): string {
-  const props = n.properties as Record<string, unknown>
-  const disp = props?.display_name
-  if (typeof disp === 'string' && disp) return disp
-  if (n.label) return n.label
-  return n.kind
-}
-
 export function SubsystemComponentList({ nodes, subsystem }: Props) {
   const selected = useSelectionStore((s) => s.selectedNodeId)
   const setSel = useSelectionStore((s) => s.setSelected)
 
-  const filtered = nodes.filter((n) => classifySubsystem(n) === subsystem)
+  const filtered = componentDiagramNodes(nodes).filter(
+    (n) => classifySubsystem(n) === subsystem,
+  )
 
   return (
     <aside className="subsystem-component-list">
@@ -45,7 +40,7 @@ export function SubsystemComponentList({ nodes, subsystem }: Props) {
                 className={`subsystem-component-btn ${selected === n.id ? 'subsystem-component-btn-active' : ''}`}
                 onClick={() => setSel(n.id)}
               >
-                <span className="subsystem-component-name">{nodeTitle(n)}</span>
+                <span className="subsystem-component-name">{nodeDisplayTitle(n)}</span>
                 <span className="muted mono subsystem-component-kind">{n.kind}</span>
               </button>
             </li>

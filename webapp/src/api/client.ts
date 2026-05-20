@@ -5,6 +5,9 @@ import type {
   PartAnnotation,
   ProjectMeta,
   SchemaFolder,
+  SchemaRegistryDocument,
+  SchemaRegistryQuery,
+  SchemaRegistrySqlResult,
   SimulateResult,
   WsEvent,
 } from './types'
@@ -248,4 +251,86 @@ export async function restoreProjectImage(
 ): Promise<{ enhanced: boolean; quality_score: number; message: string }> {
   const { data } = await http.post(`/api/projects/${projectId}/image/restore`)
   return data
+}
+
+export async function getSchemaRegistry(projectId: string): Promise<SchemaRegistryDocument> {
+  const { data } = await http.get<SchemaRegistryDocument>(
+    `/api/projects/${projectId}/schema-registry`,
+  )
+  return data
+}
+
+export async function querySchemaRegistry(
+  projectId: string,
+  table: 'components' | 'dependencies' | 'properties',
+  q?: string,
+  full = false,
+): Promise<SchemaRegistryQuery> {
+  const { data } = await http.get<SchemaRegistryQuery>(
+    `/api/projects/${projectId}/schema-registry/query`,
+    { params: { table, q: q || undefined, full: full || undefined } },
+  )
+  return data
+}
+
+export async function patchRegistryRow(
+  projectId: string,
+  table: 'components' | 'dependencies' | 'properties',
+  rowIndex: number,
+  values: Record<string, unknown>,
+): Promise<{ row: Record<string, unknown>; row_index: number }> {
+  const { data } = await http.patch(
+    `/api/projects/${projectId}/schema-registry/tables/${table}/rows/${rowIndex}`,
+    { values },
+  )
+  return data
+}
+
+export async function deleteRegistryRow(
+  projectId: string,
+  table: 'components' | 'dependencies' | 'properties',
+  rowIndex: number,
+): Promise<void> {
+  await http.delete(
+    `/api/projects/${projectId}/schema-registry/tables/${table}/rows/${rowIndex}`,
+  )
+}
+
+export async function createRegistryRow(
+  projectId: string,
+  table: 'components' | 'dependencies' | 'properties',
+  values: Record<string, unknown>,
+): Promise<{ row: Record<string, unknown>; row_index: number }> {
+  const { data } = await http.post(
+    `/api/projects/${projectId}/schema-registry/tables/${table}/rows`,
+    { values },
+  )
+  return data
+}
+
+export async function runRegistrySql(
+  projectId: string,
+  sql: string,
+): Promise<SchemaRegistrySqlResult> {
+  const { data } = await http.post<SchemaRegistrySqlResult>(
+    `/api/projects/${projectId}/schema-registry/sql`,
+    { sql },
+  )
+  return data
+}
+
+export async function refreshSchemaRegistry(
+  projectId: string,
+): Promise<SchemaRegistryDocument> {
+  const { data } = await http.post<SchemaRegistryDocument>(
+    `/api/projects/${projectId}/schema-registry/refresh`,
+  )
+  return data
+}
+
+export function schemaRegistryCsvUrl(
+  projectId: string,
+  table: 'components' | 'dependencies' | 'properties',
+): string {
+  return `/api/projects/${projectId}/schema-registry/csv/${table}`
 }

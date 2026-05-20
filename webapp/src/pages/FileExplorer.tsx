@@ -10,12 +10,19 @@ import {
   moveProjectToFolder,
   openProjectEvents,
   queueParse,
+  refreshSchemaRegistry,
   uploadProjects,
 } from '../api/client'
 import type { ProjectMeta, SchemaFolder, WsEvent } from '../api/types'
+import { ExplorerRegistryPreview } from '../components/ExplorerRegistryPreview'
 import { ExplorerTree } from '../components/ExplorerTree'
 import { LoadingIndicator } from '../components/LoadingIndicator'
 import { ProjectImage } from '../components/ProjectImage'
+import {
+  SCHEMA_EXPORT_FILES,
+  type ExplorerSchemaFileId,
+} from '../lib/schemaExports'
+import { schemaRegistryCsvUrl } from '../api/client'
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf'
 
@@ -58,6 +65,10 @@ export function FileExplorer() {
   const [rows, setRows] = useState<ProjectMeta[] | null>(null)
   const [folders, setFolders] = useState<SchemaFolder[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedSchemaFile, setSelectedSchemaFile] = useState<ExplorerSchemaFileId | null>(
+    null,
+  )
+  const [schemaExpanded, setSchemaExpanded] = useState<Record<string, boolean>>({})
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [creatingFolder, setCreatingFolder] = useState(false)
   const [err, setErr] = useState<string | null>(null)
@@ -80,6 +91,19 @@ export function FileExplorer() {
       return r[0]?.id ?? null
     })
   }, [])
+
+  useEffect(() => {
+    if (!selected?.has_diagram || selected.has_schema_registry) return
+    void (async () => {
+      try {
+        await refreshSchemaRegistry(selected.id)
+        await refresh()
+        setSchemaExpanded((prev) => ({ ...prev, [selected.id]: true }))
+      } catch {
+        /* optional backfill for projects converted before registry existed */
+      }
+    })()
+  }, [selected?.id, selected?.has_diagram, selected?.has_schema_registry, refresh])
 
   useEffect(() => {
     let cancelled = false
@@ -126,6 +150,8 @@ export function FileExplorer() {
           : `${ev.type}${ev.progress != null ? ` (${Math.round(ev.progress * 100)}%)` : ''}`
         setParseLog((prev) => [...prev.slice(-40), line])
         if (ev.type === 'error' || (ev.phase === 'done' && ev.progress === 1)) {
+          setSchemaExpanded((prev) => ({ ...prev, [projectId]: true }))
+          setSelectedSchemaFile('dependencies')
           void refresh()
         }
       })
@@ -151,6 +177,8 @@ export function FileExplorer() {
         if (created.length) {
           const firstId = created[0].id
           setSelectedId(firstId)
+          setSchemaExpanded((prev) => ({ ...prev, [firstId]: true }))
+          setSelectedSchemaFile(null)
           setRows((cur) =>
             (cur ?? []).map((r) =>
               created.some((p) => p.id === r.id)
@@ -322,8 +350,21 @@ export function FileExplorer() {
               folders={folders}
               projects={rows}
               selectedProjectId={selectedId}
+              selectedSchemaFile={selectedSchemaFile}
               selectedFolderId={selectedFolderId}
-              onSelectProject={setSelectedId}
+              schemaExpanded={schemaExpanded}
+              onToggleSchemaExpand={(pid) =>
+                setSchemaExpanded((prev) => ({ ...prev, [pid]: !prev[pid] }))
+              }
+              onSelectProject={(id) => {
+                setSelectedId(id)
+                setSelectedSchemaFile(null)
+              }}
+              onSelectSchemaFile={(id, file) => {
+                setSelectedId(id)
+                setSelectedSchemaFile(file)
+                setSchemaExpanded((prev) => ({ ...prev, [id]: true }))
+              }}
               onSelectFolder={setSelectedFolderId}
               onOpenProject={(id) => nav(`/projects/${id}`)}
               onCreateFolder={(name, parentId) => void onCreateFolder(name, parentId)}
@@ -348,19 +389,74 @@ export function FileExplorer() {
             <>
               <div className="explorer-detail-head">
                 <div>
-                  <h3>{selected.name}</h3>
+                  <h3>
+                    {selectedSchemaFile
+                      ? SCHEMA_EXPORT_FILES.find((f) => f.id === selectedSchemaFile)?.label ??
+                        selectedSchemaFile
+                      : selected.name}
+                  </h3>
                   <p className="muted mono explorer-detail-id">
-                    {selected.folder_id
-                      ? folders.find((f) => f.id === selected.folder_id)?.name ?? 'folder'
-                      : 'schematics'}
+                    {selectedSchemaFile
+                      ? `${selected.name} · schema export`
+                      : selected.folder_id
+                        ? folders.find((f) => f.id === selected.folder_id)?.name ?? 'folder'
+                        : 'schematics'}
                   </p>
                 </div>
                 <span className={`badge ${statusClass(selected)}`}>{statusLabel(selected)}</span>
               </div>
 
-              <div className="explorer-preview">
-                <ProjectImage projectId={selected.id} alt={selected.name} />
-              </div>
+              {selectedSchemaFile ? (
+                <ExplorerRegistryPreview
+                  projectId={selected.id}
+                  fileId={selectedSchemaFile}
+                  converted={selected.has_diagram}
+                />
+              ) : (
+                <div className="explorer-preview">
+                  <ProjectImage projectId={selected.id} alt={selected.name} />
+                </div>
+              )}
+
+              {(selected.has_schema_registry ||
+                (selected.parse_status === 'done' && selected.has_diagram)) &&
+              !selectedSchemaFile ? (
+                <div className="explorer-schema-exports">
+                  <h4 className="explorer-schema-exports-title">Schema exports</h4>
+                  <p className="muted explorer-schema-exports-hint">
+                    Generated on upload; refreshed when conversion completes. Expand the schematic
+                    in the tree to open each file.
+                  </p>
+                  <ul className="explorer-schema-exports-list">
+                    {SCHEMA_EXPORT_FILES.map((f) => (
+                      <li key={f.id}>
+                        <button
+                          type="button"
+                          className="explorer-schema-exports-link"
+                          onClick={() => {
+                            setSelectedSchemaFile(f.id)
+                            setSchemaExpanded((prev) => ({ ...prev, [selected.id]: true }))
+                          }}
+                        >
+                          <span>{f.icon}</span> {f.label}
+                        </button>
+                        {f.id !== 'manifest' ? (
+                          <a
+                            className="explorer-schema-dl"
+                            href={schemaRegistryCsvUrl(
+                              selected.id,
+                              f.id as 'components' | 'dependencies' | 'properties',
+                            )}
+                            download
+                          >
+                            Download
+                          </a>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
 
               <dl className="explorer-meta">
                 <div>
@@ -378,6 +474,10 @@ export function FileExplorer() {
                 <div>
                   <dt>Provider</dt>
                   <dd>{selected.last_provider ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Schema registry</dt>
+                  <dd>{selected.has_schema_registry ? 'On disk' : '—'}</dd>
                 </div>
               </dl>
 

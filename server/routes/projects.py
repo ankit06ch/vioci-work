@@ -16,6 +16,7 @@ from server.project_access import get_accessible_project, list_accessible_projec
 from server.schemas import ProjectFolderMove, ProjectOut, UploadResponse
 from server import storage
 from server.routes.parse import enqueue_parse
+from server.schema_registry import registry_exists
 from server.workspace import delete_project_files
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -33,6 +34,7 @@ def _to_out(session, rec: ProjectRecord) -> ProjectOut:
         last_domain=rec.last_domain,
         handdrawn=rec.handdrawn,
         has_diagram=storage.has_diagram(session, rec.id),
+        has_schema_registry=registry_exists(rec.id),
         image_enhanced=rec.image_enhanced,
         image_quality_score=rec.image_quality_score,
     )
@@ -99,6 +101,9 @@ async def upload_projects(
                 image_quality_score=rec.image_quality_score,
             ),
         )
+        from server.schema_registry import init_schema_registry
+
+        init_schema_registry(session, pid, project_name=name)
         enqueue_parse(pid)
         session.refresh(rec)
         created.append(_to_out(session, rec))

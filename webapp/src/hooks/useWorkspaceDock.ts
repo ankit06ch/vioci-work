@@ -53,14 +53,20 @@ export function useWorkspaceDock(projectId: string, openTabIds: string[]) {
   )
 
   const openTabInDock = useCallback(
-    (tabId: string, options?: { leafId?: string; label?: string }) => {
+    (
+      tabId: string,
+      options?: { leafId?: string; label?: string; focusContentPane?: boolean },
+    ) => {
       setLayout((prev) => openTabInLayout(prev, tabId, options).layout)
     },
     [],
   )
 
   const openTabWithMessage = useCallback(
-    (tabId: string, options?: { leafId?: string; label?: string }) => {
+    (
+      tabId: string,
+      options?: { leafId?: string; label?: string; focusContentPane?: boolean },
+    ) => {
       const result = openTabInLayout(layout, tabId, options)
       setLayout(result.layout)
       return result.message

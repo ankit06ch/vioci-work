@@ -106,6 +106,9 @@ def _run_parse(project_id: str, _body: ParseRequest) -> None:
             from server.annotation_service import sync_from_diagram
 
             sync_from_diagram(session, project_id, payload)
+            from server.schema_registry import rebuild_schema_registry
+
+            rebuild_schema_registry(session, project_id)
     except Exception as e:
         _fail(str(e))
         return

@@ -1,15 +1,6 @@
 import type { PartAnnotation } from '../api/types'
 
-export const ANNOTATION_FIELDS = [
-  { key: 'mass_kg' as const, label: 'Mass', unit: 'kg' },
-  { key: 'length_m' as const, label: 'Length', unit: 'm' },
-  { key: 'width_m' as const, label: 'Width', unit: 'm' },
-  { key: 'height_m' as const, label: 'Height', unit: 'm' },
-  { key: 'depth_m' as const, label: 'Depth', unit: 'm' },
-  { key: 'volume_m3' as const, label: 'Volume', unit: 'm³' },
-  { key: 'power_w' as const, label: 'Power', unit: 'W' },
-  { key: 'material' as const, label: 'Material', unit: '' },
-]
+export { ANNOTATION_FIELDS } from './partDataFields'
 
 export function totalMassKg(annotations: PartAnnotation[]): number | null {
   const vals = annotations

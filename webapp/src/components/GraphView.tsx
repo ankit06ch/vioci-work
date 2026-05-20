@@ -12,6 +12,7 @@ import ReactFlow, {
 import type { Edge, Node } from 'reactflow'
 import 'reactflow/dist/style.css'
 import type { Diagram, DiagramNode } from '../api/types'
+import { componentDiagramNodes, nodeDisplayTitle } from '../lib/schematicLabels'
 import { bboxForNode } from './ImageOverlay'
 import { SchemaNode } from './SchemaNode'
 import { useSelectionStore } from '../state/project'
@@ -39,14 +40,6 @@ function nodePosition(n: DiagramNode, i: number) {
   return { x: (i % 6) * 180, y: Math.floor(i / 6) * 120 }
 }
 
-function nodeLabel(n: DiagramNode) {
-  const props = n.properties as Record<string, unknown>
-  const disp = props?.display_name
-  if (typeof disp === 'string' && disp) return disp
-  if (n.label) return n.label
-  return n.kind
-}
-
 type Props = {
   diagram: Diagram
 }
@@ -65,21 +58,26 @@ function GraphViewInner({ diagram }: Props) {
   const { fitView } = useReactFlow()
   const fittedRef = useRef(false)
 
+  const componentNodes = useMemo(
+    () => componentDiagramNodes(diagram.nodes),
+    [diagram.nodes],
+  )
+
   const initNodes = useMemo(() => {
-    return diagram.nodes.map((n, i) => {
+    return componentNodes.map((n, i) => {
       const p = nodePosition(n, i)
       return {
         id: n.id,
         type: 'schema',
         position: p,
-        data: { label: nodeLabel(n) },
+        data: { label: nodeDisplayTitle(n) },
         style: nodeStyle(false),
       } satisfies Node
     })
-  }, [diagram.nodes])
+  }, [componentNodes])
 
   const initEdges = useMemo(() => {
-    const ids = new Set(diagram.nodes.map((n) => n.id))
+    const ids = new Set(componentNodes.map((n) => n.id))
     return diagram.edges
       .filter((e) => ids.has(e.source) && ids.has(e.target))
       .map(
@@ -93,7 +91,7 @@ function GraphViewInner({ diagram }: Props) {
             labelStyle: { fill: '#b0a8ac', fontSize: 10 },
           }) satisfies Edge,
       )
-  }, [diagram.nodes, diagram.edges])
+  }, [componentNodes, diagram.edges])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges)

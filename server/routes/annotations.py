@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session
 
 from server import storage
 from server.annotation_schemas import AnnotationsDocument, AnnotationsUpdate, EnhanceImageResult
@@ -43,7 +44,17 @@ def put_annotations(
     doc = load_document(session, project_id)
     doc.annotations = body.annotations
     save_document(session, project_id, doc)
+    _refresh_schema_registry(session, project_id)
     return doc
+
+
+def _refresh_schema_registry(session: Session, project_id: str) -> None:
+    from server.schema_registry import rebuild_schema_registry
+
+    try:
+        rebuild_schema_registry(session, project_id)
+    except Exception:
+        pass
 
 
 @router.post("/{project_id}/annotations/sync", response_model=AnnotationsDocument)
@@ -56,7 +67,9 @@ def sync_annotations(
     get_accessible_project(session, user, project_id)
     data = storage.get_diagram_dict(session, project_id)
     diagram = data if data is not None else {"nodes": []}
-    return sync_from_diagram(session, project_id, diagram)
+    doc = sync_from_diagram(session, project_id, diagram)
+    _refresh_schema_registry(session, project_id)
+    return doc
 
 
 @router.post("/{project_id}/annotations/auto-detect", response_model=AnnotationsDocument)
@@ -73,6 +86,7 @@ def auto_detect(
     doc = load_document(session, project_id)
     doc.annotations = auto_detect_annotations(blob[0], data, doc.annotations)
     save_document(session, project_id, doc)
+    _refresh_schema_registry(session, project_id)
     return doc
 
 

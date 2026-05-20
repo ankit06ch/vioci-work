@@ -1,6 +1,7 @@
 export type TerminalIntent =
   | { type: 'diagram' }
   | { type: 'graph' }
+  | { type: 'schema-data' }
   | { type: 'mission' }
   | { type: 'inspector' }
   | { type: 'launch' }
@@ -42,6 +43,14 @@ export function detectTerminalIntent(text: string): TerminalIntent {
     return { type: 'graph' }
   }
   if (
+    /\b(schema registry|schema table|schema data|satellite registry|query schema|excel)\b/.test(
+      lower,
+    ) ||
+    /\b(pull up|show|open)\b.*\b(registry|schema (data|table))\b/.test(lower)
+  ) {
+    return { type: 'schema-data' }
+  }
+  if (
     /\b(launch|falcon|electron|starship|vulcan|ariane|rocket|fairing|envelope|compat)\b/.test(
       lower,
     )
@@ -73,7 +82,11 @@ export function resolveOpenTabCommand(name: string): string | null {
     overlay: 'diagram',
     schematic: 'diagram',
     graph: 'graph',
+    registry: 'schema-data',
+    'schema-data': 'schema-data',
+    table: 'schema-data',
     mission: 'mission',
+    sql: 'schema-data',
     schema: 'mission',
     satellite: 'mission',
     profile: 'mission',

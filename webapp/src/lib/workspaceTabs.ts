@@ -10,6 +10,11 @@ export type WorkspaceTabDef = {
 export const WORKSPACE_TAB_CATALOG: WorkspaceTabDef[] = [
   { id: 'diagram', label: 'Satellite schema', hint: 'Uploaded schematic & IR overlay' },
   { id: 'graph', label: 'Dependency graph', hint: 'Block diagram graph' },
+  {
+    id: 'schema-data',
+    label: 'Schema registry',
+    hint: 'Queryable Excel-style tables (components, dependencies, properties)',
+  },
   { id: 'mission', label: 'Mission parameters', hint: 'Mass, orbit, power, fairing' },
   { id: 'annotations', label: 'Annotations', hint: 'Part mass, vectors, labels' },
   { id: 'inspector', label: 'Component inspector', hint: 'Telemetry schema & metrics' },

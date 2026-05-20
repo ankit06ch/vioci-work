@@ -1,12 +1,20 @@
 import { useMemo, useState } from 'react'
 import type { ProjectMeta, SchemaFolder } from '../api/types'
+import {
+  SCHEMA_EXPORT_FILES,
+  type ExplorerSchemaFileId,
+} from '../lib/schemaExports'
 
 type Props = {
   folders: SchemaFolder[]
   projects: ProjectMeta[]
   selectedProjectId: string | null
+  selectedSchemaFile: ExplorerSchemaFileId | null
   selectedFolderId: string | null
+  schemaExpanded: Record<string, boolean>
+  onToggleSchemaExpand: (projectId: string) => void
   onSelectProject: (id: string) => void
+  onSelectSchemaFile: (projectId: string, file: ExplorerSchemaFileId) => void
   onSelectFolder: (id: string | null) => void
   onOpenProject: (id: string) => void
   onCreateFolder: (name: string, parentId: string | null) => void
@@ -20,6 +28,100 @@ type Props = {
 }
 
 type DropTarget = 'root' | string
+
+type ProjectNodeProps = {
+  project: ProjectMeta
+  padLeft: number
+  selectedProjectId: string | null
+  selectedSchemaFile: ExplorerSchemaFileId | null
+  schemaExpanded: boolean
+  onToggleSchemaExpand: () => void
+  onSelectProject: (id: string) => void
+  onSelectSchemaFile: (projectId: string, file: ExplorerSchemaFileId) => void
+  onOpenProject: (id: string) => void
+  statusClassFn: (p: ProjectMeta) => string
+  statusLabelFn: (p: ProjectMeta) => string
+}
+
+function ExplorerProjectNode({
+  project: p,
+  padLeft,
+  selectedProjectId,
+  selectedSchemaFile,
+  schemaExpanded,
+  onToggleSchemaExpand,
+  onSelectProject,
+  onSelectSchemaFile,
+  onOpenProject,
+  statusClassFn,
+  statusLabelFn,
+}: ProjectNodeProps) {
+  const hasSchema = p.has_schema_registry ?? false
+  const showExports = hasSchema || (p.parse_status === 'done' && p.has_diagram)
+
+  return (
+    <li className="explorer-project-node">
+      <div className="explorer-tree-row" style={{ paddingLeft: `${padLeft}px` }}>
+        {showExports ? (
+          <button
+            type="button"
+            className="explorer-schema-chevron"
+            aria-expanded={schemaExpanded}
+            title={schemaExpanded ? 'Collapse schema exports' : 'Expand schema exports'}
+            onClick={(e) => {
+              e.stopPropagation()
+              onToggleSchemaExpand()
+            }}
+          >
+            {schemaExpanded ? '▾' : '▸'}
+          </button>
+        ) : (
+          <span className="explorer-schema-chevron spacer" />
+        )}
+        <button
+          type="button"
+          role="option"
+          aria-selected={selectedProjectId === p.id && !selectedSchemaFile}
+          className={`explorer-file ${selectedProjectId === p.id && !selectedSchemaFile ? 'explorer-file-active' : ''}`}
+          onClick={() => onSelectProject(p.id)}
+          onDoubleClick={() => onOpenProject(p.id)}
+          draggable
+          onDragStart={(e) => {
+            e.dataTransfer.setData('text/project-id', p.id)
+            e.dataTransfer.effectAllowed = 'move'
+          }}
+        >
+          <span className="explorer-file-icon">📄</span>
+          <span className="explorer-file-name" title={p.name}>
+            {p.name}
+          </span>
+          <span className={`explorer-file-badge ${statusClassFn(p)}`}>{statusLabelFn(p)}</span>
+        </button>
+      </div>
+      {showExports && schemaExpanded ? (
+        <ul className="explorer-schema-children" role="group" aria-label="Schema exports">
+          {SCHEMA_EXPORT_FILES.map((f) => (
+            <li key={f.id}>
+              <button
+                type="button"
+                className={`explorer-schema-file ${
+                  selectedProjectId === p.id && selectedSchemaFile === f.id
+                    ? 'explorer-file-active'
+                    : ''
+                }`}
+                style={{ paddingLeft: `${padLeft + 22}px` }}
+                onClick={() => onSelectSchemaFile(p.id, f.id)}
+              >
+                <span className="explorer-file-icon">{f.icon}</span>
+                <span className="explorer-file-name">{f.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  )
+}
 
 function handleDrop(
   e: React.DragEvent,
@@ -56,9 +158,13 @@ type FolderBranchProps = {
   allProjects: ProjectMeta[]
   depth: number
   selectedProjectId: string | null
+  selectedSchemaFile: ExplorerSchemaFileId | null
   selectedFolderId: string | null
+  schemaExpanded: Record<string, boolean>
+  onToggleSchemaExpand: (projectId: string) => void
   dropHighlight: DropTarget | null
   onSelectProject: (id: string) => void
+  onSelectSchemaFile: (projectId: string, file: ExplorerSchemaFileId) => void
   onSelectFolder: (id: string | null) => void
   onOpenProject: (id: string) => void
   onCreateFolder: (name: string, parentId: string | null) => void
@@ -78,9 +184,13 @@ function FolderBranch({
   allProjects,
   depth,
   selectedProjectId,
+  selectedSchemaFile,
   selectedFolderId,
+  schemaExpanded,
+  onToggleSchemaExpand,
   dropHighlight,
   onSelectProject,
+  onSelectSchemaFile,
   onSelectFolder,
   onOpenProject,
   onCreateFolder,
@@ -188,9 +298,13 @@ function FolderBranch({
               allProjects={allProjects}
               depth={depth + 1}
               selectedProjectId={selectedProjectId}
+              selectedSchemaFile={selectedSchemaFile}
               selectedFolderId={selectedFolderId}
+              schemaExpanded={schemaExpanded}
+              onToggleSchemaExpand={onToggleSchemaExpand}
               dropHighlight={dropHighlight}
               onSelectProject={onSelectProject}
+              onSelectSchemaFile={onSelectSchemaFile}
               onSelectFolder={onSelectFolder}
               onOpenProject={onOpenProject}
               onCreateFolder={onCreateFolder}
@@ -203,30 +317,20 @@ function FolderBranch({
             />
           ))}
           {childProjects.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={selectedProjectId === p.id}
-                className={`explorer-file ${selectedProjectId === p.id ? 'explorer-file-active' : ''}`}
-                style={{ paddingLeft: `${28 + depth * 14}px` }}
-                onClick={() => onSelectProject(p.id)}
-                onDoubleClick={() => onOpenProject(p.id)}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/project-id', p.id)
-                  e.dataTransfer.effectAllowed = 'move'
-                }}
-              >
-                <span className="explorer-file-icon">📄</span>
-                <span className="explorer-file-name" title={p.name}>
-                  {p.name}
-                </span>
-                <span className={`explorer-file-badge ${statusClassFn(p)}`}>
-                  {statusLabelFn(p)}
-                </span>
-              </button>
-            </li>
+            <ExplorerProjectNode
+              key={p.id}
+              project={p}
+              padLeft={28 + depth * 14}
+              selectedProjectId={selectedProjectId}
+              selectedSchemaFile={selectedSchemaFile}
+              schemaExpanded={!!schemaExpanded[p.id]}
+              onToggleSchemaExpand={() => onToggleSchemaExpand(p.id)}
+              onSelectProject={onSelectProject}
+              onSelectSchemaFile={onSelectSchemaFile}
+              onOpenProject={onOpenProject}
+              statusClassFn={statusClassFn}
+              statusLabelFn={statusLabelFn}
+            />
           ))}
         </ul>
       )}
@@ -238,8 +342,12 @@ export function ExplorerTree({
   folders,
   projects,
   selectedProjectId,
+  selectedSchemaFile,
   selectedFolderId,
+  schemaExpanded,
+  onToggleSchemaExpand,
   onSelectProject,
+  onSelectSchemaFile,
   onSelectFolder,
   onOpenProject,
   onCreateFolder,
@@ -298,9 +406,13 @@ export function ExplorerTree({
               allProjects={projects}
               depth={0}
               selectedProjectId={selectedProjectId}
+              selectedSchemaFile={selectedSchemaFile}
               selectedFolderId={selectedFolderId}
+              schemaExpanded={schemaExpanded}
+              onToggleSchemaExpand={onToggleSchemaExpand}
               dropHighlight={dropHighlight}
               onSelectProject={onSelectProject}
+              onSelectSchemaFile={onSelectSchemaFile}
               onSelectFolder={onSelectFolder}
               onOpenProject={onOpenProject}
               onCreateFolder={onCreateFolder}
@@ -314,28 +426,20 @@ export function ExplorerTree({
           ))}
 
           {rootProjects.map((p) => (
-            <li key={p.id}>
-              <button
-                type="button"
-                role="option"
-                aria-selected={selectedProjectId === p.id}
-                className={`explorer-file ${selectedProjectId === p.id ? 'explorer-file-active' : ''}`}
-                style={{ paddingLeft: '28px' }}
-                onClick={() => onSelectProject(p.id)}
-                onDoubleClick={() => onOpenProject(p.id)}
-                draggable
-                onDragStart={(e) => {
-                  e.dataTransfer.setData('text/project-id', p.id)
-                  e.dataTransfer.effectAllowed = 'move'
-                }}
-              >
-                <span className="explorer-file-icon">📄</span>
-                <span className="explorer-file-name" title={p.name}>
-                  {p.name}
-                </span>
-                <span className={`explorer-file-badge ${statusClass(p)}`}>{statusLabel(p)}</span>
-              </button>
-            </li>
+            <ExplorerProjectNode
+              key={p.id}
+              project={p}
+              padLeft={28}
+              selectedProjectId={selectedProjectId}
+              selectedSchemaFile={selectedSchemaFile}
+              schemaExpanded={!!schemaExpanded[p.id]}
+              onToggleSchemaExpand={() => onToggleSchemaExpand(p.id)}
+              onSelectProject={onSelectProject}
+              onSelectSchemaFile={onSelectSchemaFile}
+              onOpenProject={onOpenProject}
+              statusClassFn={statusClass}
+              statusLabelFn={statusLabel}
+            />
           ))}
 
           {!rootFolders.length && !rootProjects.length ? (

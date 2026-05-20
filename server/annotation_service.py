@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -16,6 +17,69 @@ from server.annotation_schemas import (
     PartAnnotation,
 )
 from server.models import ProjectAnnotations
+
+
+# Coordinate frame / axis ticks on schematics (+X, -Y, …) — not physical components.
+_AXIS_COMPACT = re.compile(r"^[+-±]?[xyz]$|^[xyz][+-±]?$", re.IGNORECASE)
+
+# Diagram primitives that are wiring, leaders, or reference graphics — not parts.
+_SCHEMATIC_GRAPHIC_KINDS = frozenset(
+    {
+        "line",
+        "arrow",
+        "connector",
+        "edge",
+        "leader",
+        "dimension",
+        "axis",
+        "polyline",
+        "path",
+        "wire",
+        "link",
+        "reference",
+        "frame",
+        "grid",
+        "guide",
+    }
+)
+
+
+def is_axis_reference_label(name: str) -> bool:
+    raw = (name or "").strip()
+    if not raw:
+        return False
+    compact = re.sub(r"\s+", "", raw)
+    if _AXIS_COMPACT.match(compact):
+        return True
+    low = raw.lower()
+    if low in {"x", "y", "z"}:
+        return True
+    if re.fullmatch(r"[+-]?\s*[xyz]\s*(axis)?", low):
+        return True
+    return False
+
+
+def should_skip_diagram_node_for_components(node: dict[str, Any]) -> bool:
+    """True for axis labels and unlabeled schematic lines/arrows."""
+    name = _node_display_name(node)
+    if is_axis_reference_label(name):
+        return True
+    kind = str(node.get("kind") or "").lower()
+    if kind not in _SCHEMATIC_GRAPHIC_KINDS:
+        return False
+    props = node.get("properties") or {}
+    label = node.get("label")
+    disp = props.get("display_name")
+    has_caption = (isinstance(label, str) and label.strip()) or (
+        isinstance(disp, str) and disp.strip()
+    )
+    if not has_caption:
+        return True
+    if is_axis_reference_label(name):
+        return True
+    if len(name) <= 3 and name.lower() in {"line", "wire", "link", "conn"}:
+        return True
+    return False
 
 
 def _humanize_name(raw: str) -> str:
@@ -109,6 +173,8 @@ def seed_from_diagram(
     for node in diagram.get("nodes") or []:
         nid = str(node.get("id") or "")
         if not nid:
+            continue
+        if should_skip_diagram_node_for_components(node):
             continue
         seen_nodes.add(nid)
         name = _node_display_name(node)

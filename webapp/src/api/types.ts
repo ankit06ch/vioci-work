@@ -18,6 +18,7 @@ export interface ProjectMeta {
   last_domain: string | null
   handdrawn: boolean
   has_diagram: boolean
+  has_schema_registry?: boolean
   image_enhanced?: boolean
   image_quality_score?: number | null
 }
@@ -122,6 +123,53 @@ export interface WsEvent {
   phase?: string
   message?: string
   progress?: number
+}
+
+export interface SchemaRegistryMeta {
+  updated_at: string
+  parse_status: string
+  last_domain: string | null
+  node_count: number
+  edge_count: number
+  part_count: number
+  project_name: string
+}
+
+export interface SchemaRegistryTable {
+  columns: string[]
+  rows: Record<string, unknown>[]
+}
+
+export interface SchemaRegistryDocument {
+  version: number
+  project_id: string
+  project_name: string
+  updated_at: string
+  parse_status: string
+  last_domain: string | null
+  node_count: number
+  edge_count: number
+  part_count: number
+  tables: Record<string, SchemaRegistryTable>
+  files: Record<string, string>
+}
+
+export interface SchemaRegistrySqlResult {
+  columns: string[]
+  rows: Record<string, unknown>[]
+  row_count: number
+  mutated: boolean
+  message?: string | null
+}
+
+export interface SchemaRegistryQuery {
+  table: string
+  columns: string[]
+  rows: Record<string, unknown>[]
+  total: number
+  filtered: number
+  truncated: boolean
+  meta?: SchemaRegistryMeta | null
 }
 
 export interface SimulateResult {

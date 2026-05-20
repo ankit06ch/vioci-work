@@ -107,6 +107,20 @@ def after_sheet_write(project_id: str, sheet_path: Path) -> None:
         cloud_files.upload_file(project_id, sheet_path, f"sheets/{sheet_path.name}")
 
 
+def after_registry_write(project_id: str) -> None:
+    """Upload satellite_schema.json and schema/*.csv after local write."""
+    if not _use_cloud_files():
+        return
+    root = project_dir(project_id)
+    manifest = root / "schema" / "satellite_schema.json"
+    if manifest.is_file():
+        cloud_files.upload_file(project_id, manifest, "schema/satellite_schema.json")
+    schema_dir = root / "schema"
+    if schema_dir.is_dir():
+        for p in schema_dir.glob("*.csv"):
+            cloud_files.upload_file(project_id, p, f"schema/{p.name}")
+
+
 def delete_project_files(project_id: str) -> None:
     d = ensure_workspace() / project_id
     cloud_files.delete_project_cloud(project_id)

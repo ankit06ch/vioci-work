@@ -35,6 +35,7 @@ class ProjectOut(BaseModel):
     last_domain: str | None = None
     handdrawn: bool = False
     has_diagram: bool = False
+    has_schema_registry: bool = False
     image_enhanced: bool = False
     image_quality_score: float | None = None
 
@@ -118,3 +119,62 @@ class OrganizationOut(BaseModel):
     name: str
     slug: str
     plan: str
+
+
+class SchemaRegistryTable(BaseModel):
+    columns: list[str] = Field(default_factory=list)
+    rows: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class SchemaRegistryOut(BaseModel):
+    version: int
+    project_id: str
+    project_name: str
+    updated_at: str
+    parse_status: str
+    last_domain: str | None = None
+    node_count: int = 0
+    edge_count: int = 0
+    part_count: int = 0
+    tables: dict[str, SchemaRegistryTable]
+    files: dict[str, str] = Field(default_factory=dict)
+
+
+class SchemaRegistryMetaSummary(BaseModel):
+    updated_at: str
+    parse_status: str
+    last_domain: str | None = None
+    node_count: int = 0
+    edge_count: int = 0
+    part_count: int = 0
+    project_name: str = ""
+
+
+class SchemaRegistryQueryOut(BaseModel):
+    table: str
+    columns: list[str] = Field(default_factory=list)
+    rows: list[dict[str, Any]] = Field(default_factory=list)
+    total: int = 0
+    filtered: int = 0
+    truncated: bool = False
+    meta: SchemaRegistryMetaSummary | None = None
+
+
+class SchemaRegistryRowUpdate(BaseModel):
+    values: dict[str, Any] = Field(default_factory=dict)
+
+
+class SchemaRegistryRowCreate(BaseModel):
+    values: dict[str, Any] = Field(default_factory=dict)
+
+
+class SchemaRegistrySqlRequest(BaseModel):
+    sql: str = Field(min_length=1, max_length=16_000)
+
+
+class SchemaRegistrySqlResponse(BaseModel):
+    columns: list[str] = Field(default_factory=list)
+    rows: list[dict[str, Any]] = Field(default_factory=list)
+    row_count: int = 0
+    mutated: bool = False
+    message: str | None = None
