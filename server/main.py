@@ -18,6 +18,7 @@ from server.state import init_db
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    events.reset_for_startup()
     events.set_loop(asyncio.get_running_loop())
     init_db()
     s = get_server_settings()
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
     print(f"[vioci] database: {mode}", flush=True)
     print("[vioci] API ready — http://127.0.0.1:8000/api/health", flush=True)
     yield
+    events.request_shutdown()
 
 
 API_DESCRIPTION = """

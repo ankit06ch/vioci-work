@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+import threading
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
 from server import events, storage, workspace
@@ -105,7 +107,6 @@ def _run_parse(project_id: str, _body: ParseRequest) -> None:
 @router.post("/{project_id}/parse", response_model=ParseQueued)
 def queue_parse(
     project_id: str,
-    bg: BackgroundTasks,
     session: SessionDep,
     user: User = Depends(get_current_user),
     body: ParseRequest | None = None,
@@ -120,5 +121,11 @@ def queue_parse(
         session.add(rec)
         session.commit()
 
-    bg.add_task(_run_parse, project_id, body or ParseRequest())
+    req = body or ParseRequest()
+    threading.Thread(
+        target=_run_parse,
+        args=(project_id, req),
+        daemon=True,
+        name=f"parse-{project_id[:8]}",
+    ).start()
     return ParseQueued()

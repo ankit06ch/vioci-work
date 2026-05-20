@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
@@ -48,8 +49,13 @@ async def project_events(
     q = events.subscribe(project_id)
     try:
         await websocket.send_json({"type": "progress", "phase": "connected", "message": "listening"})
-        while True:
-            event = await q.get()
+        while not events.is_shutdown():
+            try:
+                event = await asyncio.wait_for(q.get(), timeout=2.0)
+            except asyncio.TimeoutError:
+                continue
+            if event.get("type") == "shutdown":
+                break
             await websocket.send_text(json.dumps(event))
     except WebSocketDisconnect:
         pass

@@ -33,7 +33,7 @@ http.interceptors.response.use(
 export function formatApiError(e: unknown): string {
   if (isAxiosError(e)) {
     if (e.code === 'ECONNABORTED') {
-      return 'Request timed out — is the API responding on port 8000?'
+      return 'Request timed out — the API may be stuck reloading. Run `make kill-dev-ports` then `make dev`, or wait a few seconds and refresh.'
     }
     if (e.response == null) {
       return 'Cannot reach API — start the backend (port 8000) and use `npm run dev` so /api is proxied.'
