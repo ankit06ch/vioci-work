@@ -83,3 +83,19 @@ class ProjectDiagram(SQLModel, table=True):
     project_id: str = Field(primary_key=True, foreign_key="project.id")
     json_text: str
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ProjectLaunchLoads(SQLModel, table=True):
+    __tablename__ = "project_launch_loads"
+
+    project_id: str = Field(primary_key=True, foreign_key="project.id")
+    json_text: str = Field(default="{}")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ProjectLaunchReport(SQLModel, table=True):
+    __tablename__ = "project_launch_report"
+
+    project_id: str = Field(primary_key=True, foreign_key="project.id")
+    json_text: str
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

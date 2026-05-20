@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "id": "elec",
+  "name": "Electron",
+  "provider": "Rocket Lab",
+  "source_document": "Electron Payload User's Guide (representative)",
+  "rev_date": "2024-01-01",
+  "leo_capacity_kg": 300,
+  "gto_capacity_kg": 0,
+  "sso_capacity_kg": 200,
+  "fairing_diameter_m": 1.2,
+  "fairing_height_m": 2.5,
+  "static_envelope_diameter_m": 1.05,
+  "dynamic_envelope_diameter_m": 0.98,
+  "dynamic_envelope_scale": 0.93,
+  "max_axial_g": 7.5,
+  "max_lateral_g": 1.0,
+  "fairing_acoustic_oaspl_db": 138.0,
+  "depressurization_max_pa_per_s": 1200.0,
+  "isp_vac_s": 318.0,
+  "vehicle_dry_mass_kg": 1300,
+  "propellant_mass_kg": 10800,
+  "modal_guidance": {
+    "primary_lateral_hz_min": 12.0,
+    "primary_axial_hz_min": 30.0,
+    "secondary_hz_min": 40.0,
+    "reference": "Small-launch typical practice"
+  },
+  "cg_limits": {
+    "lateral_offset_mm_max": 30.0,
+    "cg_height_above_sip_mm_max": 800.0,
+    "multi_orbit_cg_shift_mm_rss": 25.0
+  },
+  "interface_types": ["standard_port"],
+  "quasi_static_by_mass_class": [
+    {"mass_min_kg": 0, "mass_max_kg": 150, "axial_g": 7.0, "lateral_g": 0.9},
+    {"mass_min_kg": 150, "mass_max_kg": 400, "axial_g": 7.5, "lateral_g": 1.0}
+  ],
+  "sine_peaks": [
+    {"axis": "lateral", "freq_hz": 15, "peak_g": 0.8},
+    {"axis": "axial", "freq_hz": 30, "peak_g": 1.5}
+  ],
+  "random_psd": [
+    {"freq_hz": 20, "asd_g2_hz": 0.02},
+    {"freq_hz": 100, "asd_g2_hz": 0.08},
+    {"freq_hz": 400, "asd_g2_hz": 0.015}
+  ],
+  "shock_srs": [
+    {"freq_hz": 100, "pv_in_s": 15},
+    {"freq_hz": 1000, "pv_in_s": 30}
+  ],
+  "thermal": {
+    "max_payload_heat_flux_kw_m2": 12.0,
+    "ascent_duration_s": 480
+  }
+}

@@ -200,9 +200,16 @@ export interface LaunchCompatCheck {
   category: string
   title: string
   status: 'pass' | 'warn' | 'fail'
+  test_status?: 'pass' | 'warn' | 'fail' | 'blocked'
+  mandatory?: boolean
   value: string
   limit: string
   detail: string
+  margin?: number | null
+  margin_of_safety?: number | null
+  assumptions?: string[]
+  references?: string[]
+  artifacts?: Record<string, unknown>
 }
 
 export interface LaunchStressHotspot {
@@ -222,12 +229,17 @@ export interface LaunchCompatResult {
   orbit: string
   overall_score: number
   overall_status: 'nominal' | 'review' | 'caution' | 'fail'
+  engine_version?: string
+  vehicle_data_rev?: string
+  verdict?: string
+  blockers?: { id: string; title: string; status: string; detail: string }[]
   payload_mass_kg: number
   mass_source: string
   capacity_kg: number
   mass_margin_pct: number
   mass_properties: Record<string, number>
   category_scores: Record<string, number>
+  tests?: LaunchCompatCheck[]
   checks: LaunchCompatCheck[]
   warnings: { level: string; text: string; check_id: string }[]
   stress_field: {
@@ -237,10 +249,14 @@ export interface LaunchCompatResult {
     power_w: number[][]
     max_stress_mpa: number
     max_power_w: number
+    min_margin_of_safety?: number | null
     cg: { x: number; y: number }
-    first_bending_hz: number
+    first_bending_hz?: number
     hotspots: LaunchStressHotspot[]
     power_hotspots: LaunchStressHotspot[]
+    members?: { id: string; name: string; stress_mpa: number; margin_of_safety: number }[]
+    fea_mode?: string
   }
   simulation: { engine: string; fea_mode: string; notes: string }
+  disclaimer?: string
 }

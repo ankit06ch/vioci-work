@@ -2632,9 +2632,133 @@ textarea.input-msg {
   grid-template-columns: repeat(4, 1fr);
 }
 
+.launch-disclaimer {
+  font-size: 0.72rem;
+  margin: 0 0 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-left: 2px solid var(--accent-orange);
+}
+
+.launch-blockers {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+}
+
+.launch-blocker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+
+.launch-test-matrix {
+  overflow-x: auto;
+  margin: 0.5rem 0;
+}
+
+.launch-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72rem;
+}
+
+.launch-matrix-table th {
+  text-align: left;
+  color: var(--text-muted);
+  font-weight: 500;
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.launch-matrix-row {
+  cursor: pointer;
+}
+
+.launch-matrix-row:hover,
+.launch-matrix-row-active {
+  background: var(--cyan-dim);
+}
+
+.launch-matrix-row td {
+  padding: 0.35rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.launch-matrix-cat {
+  display: block;
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+.launch-matrix-mand {
+  color: var(--accent-orange);
+  margin-left: 0.15rem;
+}
+
+.launch-matrix-badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+}
+
+.launch-matrix-pass {
+  color: var(--cyan);
+  border: 1px solid var(--cyan);
+}
+
+.launch-matrix-warn {
+  color: var(--accent-orange);
+  border: 1px solid var(--accent-orange);
+}
+
+.launch-matrix-fail {
+  color: var(--accent-rose);
+  border: 1px solid var(--accent-rose);
+}
+
+.launch-matrix-blocked {
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+}
+
+.launch-test-detail {
+  padding: 0.65rem;
+  margin: 0.5rem 0;
+}
+
+.launch-assumptions {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.launch-load-curves {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.launch-curve-svg {
+  width: 100%;
+  height: 80px;
+  background: var(--bg-void);
+  border-radius: var(--radius);
+}
+
 @media (max-width: 720px) {
   .launch-metrics {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .launch-load-curves {
+    grid-template-columns: 1fr;
   }
 }
 

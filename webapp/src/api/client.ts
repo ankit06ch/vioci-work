@@ -3,6 +3,7 @@ import type {
   AnnotationsDocument,
   Diagram,
   PartAnnotation,
+  LaunchCompatCheck,
   LaunchCompatResult,
   LaunchVehicleMeta,
   ProjectMeta,
@@ -350,5 +351,36 @@ export async function runLaunchCompat(
     `/api/projects/${projectId}/launch-compat`,
     body,
   )
+  return data
+}
+
+export async function getLaunchReport(projectId: string): Promise<LaunchCompatResult> {
+  const { data } = await http.get<LaunchCompatResult>(`/api/projects/${projectId}/launch-compat/report`)
+  return data
+}
+
+export async function runLaunchTest(
+  projectId: string,
+  testId: string,
+  body: { vehicle_id: string; orbit: string; profile: Record<string, string | number> },
+): Promise<LaunchCompatCheck> {
+  const { data } = await http.post<LaunchCompatCheck>(
+    `/api/projects/${projectId}/launch-compat/tests/${testId}`,
+    body,
+  )
+  return data
+}
+
+export async function uploadLaunchLoads(
+  projectId: string,
+  kind: string,
+  file: File,
+): Promise<{ ok: boolean; kind: string; keys: string[] }> {
+  const form = new FormData()
+  form.append('kind', kind)
+  form.append('file', file)
+  const { data } = await http.post(`/api/projects/${projectId}/launch-loads`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return data
 }

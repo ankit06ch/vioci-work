@@ -8,6 +8,17 @@ export type ProfileFieldKey =
   | 'fairing_diameter_m'
   | 'deployable_span_m'
   | 'design_life_years'
+  | 'cg_x_mm'
+  | 'cg_y_mm'
+  | 'cg_z_mm'
+  | 'moi_ixx_kgm2'
+  | 'moi_iyy_kgm2'
+  | 'moi_izz_kgm2'
+  | 'interface_type'
+  | 'primary_lateral_hz'
+  | 'primary_axial_hz'
+  | 'vent_area_m2'
+  | 'sealed_volume_m3'
 
 export type ProfileFieldDef = {
   key: ProfileFieldKey
@@ -62,6 +73,72 @@ export const PROFILE_FIELDS: ProfileFieldDef[] = [
     label: 'Design life',
     unit: 'yr',
     requiredFor: ['all'],
+  },
+  {
+    key: 'cg_x_mm',
+    label: 'CG lateral X (above interface)',
+    unit: 'mm',
+    subsystemHint: 'Structure',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'cg_y_mm',
+    label: 'CG lateral Y',
+    unit: 'mm',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'cg_z_mm',
+    label: 'CG height above SIP',
+    unit: 'mm',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'moi_ixx_kgm2',
+    label: 'MOI Ixx (measured)',
+    unit: 'kg·m²',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'moi_iyy_kgm2',
+    label: 'MOI Iyy',
+    unit: 'kg·m²',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'moi_izz_kgm2',
+    label: 'MOI Izz',
+    unit: 'kg·m²',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'interface_type',
+    label: 'LV interface (PAF type)',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'primary_lateral_hz',
+    label: 'Primary lateral mode',
+    unit: 'Hz',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'primary_axial_hz',
+    label: 'Primary axial mode',
+    unit: 'Hz',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'vent_area_m2',
+    label: 'Vent orifice area',
+    unit: 'm²',
+    requiredFor: ['launch'],
+  },
+  {
+    key: 'sealed_volume_m3',
+    label: 'Sealed cavity volume',
+    unit: 'm³',
+    requiredFor: ['launch'],
   },
 ]
 

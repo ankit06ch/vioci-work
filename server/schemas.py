@@ -203,13 +203,19 @@ class LaunchCompatResponse(BaseModel):
     orbit: str
     overall_score: int
     overall_status: str
-    payload_mass_kg: float
-    mass_source: str
-    capacity_kg: float
-    mass_margin_pct: float
-    mass_properties: dict[str, Any]
-    category_scores: dict[str, int]
-    checks: list[dict[str, Any]]
-    warnings: list[dict[str, Any]]
-    stress_field: dict[str, Any]
-    simulation: dict[str, Any]
+    engine_version: str | None = None
+    vehicle_data_rev: str | None = None
+    verdict: str | None = None
+    blockers: list[dict[str, Any]] = Field(default_factory=list)
+    payload_mass_kg: float = 0
+    mass_source: str = ""
+    capacity_kg: float = 0
+    mass_margin_pct: float = 0
+    mass_properties: dict[str, Any] = Field(default_factory=dict)
+    category_scores: dict[str, int] = Field(default_factory=dict)
+    tests: list[dict[str, Any]] = Field(default_factory=list)
+    checks: list[dict[str, Any]] = Field(default_factory=list)
+    warnings: list[dict[str, Any]] = Field(default_factory=list)
+    stress_field: dict[str, Any] = Field(default_factory=dict)
+    simulation: dict[str, Any] = Field(default_factory=dict)
+    disclaimer: str | None = None

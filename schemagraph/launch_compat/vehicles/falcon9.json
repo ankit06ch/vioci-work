@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "id": "f9",
+  "name": "Falcon 9",
+  "provider": "SpaceX",
+  "source_document": "Falcon Payload User Guide",
+  "rev_date": "2025-05-09",
+  "leo_capacity_kg": 22800,
+  "gto_capacity_kg": 8300,
+  "sso_capacity_kg": 15600,
+  "fairing_diameter_m": 5.2,
+  "fairing_height_m": 13.1,
+  "static_envelope_diameter_m": 4.6,
+  "dynamic_envelope_diameter_m": 4.35,
+  "dynamic_envelope_scale": 0.94,
+  "max_axial_g": 6.0,
+  "max_lateral_g": 0.8,
+  "fairing_acoustic_oaspl_db": 142.0,
+  "depressurization_max_pa_per_s": 850.0,
+  "isp_vac_s": 348.0,
+  "vehicle_dry_mass_kg": 22200,
+  "propellant_mass_kg": 395700,
+  "modal_guidance": {
+    "primary_lateral_hz_min": 10.0,
+    "primary_axial_hz_min": 25.0,
+    "secondary_hz_min": 35.0,
+    "reference": "Falcon Payload User Guide §5.3.1"
+  },
+  "cg_limits": {
+    "lateral_offset_mm_max": 50.0,
+    "cg_height_above_sip_mm_max": 2500.0,
+    "multi_orbit_cg_shift_mm_rss": 50.0
+  },
+  "interface_types": ["paf_1575", "paf_2624", "paf_3117"],
+  "quasi_static_by_mass_class": [
+    {"mass_min_kg": 0, "mass_max_kg": 2000, "axial_g": 5.5, "lateral_g": 0.6},
+    {"mass_min_kg": 2000, "mass_max_kg": 8000, "axial_g": 6.0, "lateral_g": 0.7},
+    {"mass_min_kg": 8000, "mass_max_kg": 25000, "axial_g": 6.5, "lateral_g": 0.8}
+  ],
+  "sine_peaks": [
+    {"axis": "lateral", "freq_hz": 10, "peak_g": 0.5},
+    {"axis": "lateral", "freq_hz": 50, "peak_g": 1.2},
+    {"axis": "axial", "freq_hz": 25, "peak_g": 1.0}
+  ],
+  "random_psd": [
+    {"freq_hz": 20, "asd_g2_hz": 0.008},
+    {"freq_hz": 80, "asd_g2_hz": 0.04},
+    {"freq_hz": 200, "asd_g2_hz": 0.02},
+    {"freq_hz": 500, "asd_g2_hz": 0.006}
+  ],
+  "shock_srs": [
+    {"freq_hz": 100, "pv_in_s": 20},
+    {"freq_hz": 500, "pv_in_s": 45},
+    {"freq_hz": 2000, "pv_in_s": 35}
+  ],
+  "thermal": {
+    "max_payload_heat_flux_kw_m2": 18.0,
+    "ascent_duration_s": 600
+  }
+}

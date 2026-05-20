@@ -12,6 +12,8 @@ from server.models import (
     ProjectAnnotations,
     ProjectDiagram,
     ProjectImage,
+    ProjectLaunchLoads,
+    ProjectLaunchReport,
     ProjectRecord,
     SchemaFolder,
     User,

@@ -1,22 +1,18 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   formatApiError,
   listLaunchVehicles,
   runLaunchCompat,
+  uploadLaunchLoads,
 } from '../api/client'
 import type { LaunchCompatResult, LaunchVehicleMeta, PartAnnotation } from '../api/types'
 import type { SatelliteProfile } from '../lib/satelliteProfile'
 import { missingFields } from '../lib/satelliteProfile'
 import { missionReadinessHint } from '../lib/annotations'
 import { LaunchStressMap } from './LaunchStressMap'
+import { LaunchTestMatrix } from './LaunchTestMatrix'
+import { LaunchLoadCurves } from './LaunchLoadCurves'
 import { LoadingIndicator } from './LoadingIndicator'
-
-const CATEGORY_LABELS: Record<string, string> = {
-  mass_orbit: '1 · Mass, orbit & performance',
-  envelope: '2 · Volumetric fit',
-  loads: '3 · Structural & dynamic loads',
-  thermal: '4 · Thermal & environment',
-}
 
 type Props = {
   projectId: string
@@ -39,18 +35,27 @@ export function LaunchCompatPanel({
   const [result, setResult] = useState<LaunchCompatResult | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
-  const [activeCategory, setActiveCategory] = useState<string>('mass_orbit')
+  const [selectedTestId, setSelectedTestId] = useState<string | null>(null)
   const [stressMode, setStressMode] = useState<'stress' | 'power'>('stress')
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploadKind, setUploadKind] = useState<'psd' | 'srs'>('psd')
 
   const missing = useMemo(() => missingFields(profile, 'launch'), [profile])
   const massHint = missionReadinessHint(annotations)
+  const tests = result?.tests ?? result?.checks ?? []
+  const selectedTest = tests.find((t) => t.id === selectedTestId) ?? null
+
+  const psdArtifact = tests.find((t) => t.id === 'random_vibration')?.artifacts?.psd as
+    | { freq_hz: number; asd_g2_hz: number }[]
+    | undefined
+  const srsArtifact = tests.find((t) => t.id === 'shock_srs')?.artifacts?.srs as
+    | { freq_hz: number; pv_in_s: number }[]
+    | undefined
 
   useEffect(() => {
     void listLaunchVehicles()
       .then(setVehicles)
-      .catch(() => {
-        /* fallback if offline */
-      })
+      .catch(() => {})
   }, [])
 
   const runSim = useCallback(async () => {
@@ -64,6 +69,7 @@ export function LaunchCompatPanel({
         profile: profile as Record<string, string | number>,
       })
       setResult(r)
+      setSelectedTestId(null)
     } catch (e) {
       setErr(formatApiError(e))
       setResult(null)
@@ -73,38 +79,54 @@ export function LaunchCompatPanel({
   }, [projectId, selected, orbit, profile])
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      void runSim()
-    }, 400)
+    const t = setTimeout(() => void runSim(), 500)
     return () => clearTimeout(t)
   }, [runSim])
 
-  const vehicleList = vehicles.length
-    ? vehicles
-    : [
-        { id: 'f9', name: 'Falcon 9', provider: 'SpaceX', leo_capacity_kg: 22800, gto_capacity_kg: 8300, fairing_diameter_m: 5.2 },
-        { id: 'elec', name: 'Electron', provider: 'Rocket Lab', leo_capacity_kg: 300, gto_capacity_kg: 0, fairing_diameter_m: 1.2 },
-        { id: 'starship', name: 'Starship', provider: 'SpaceX', leo_capacity_kg: 100000, gto_capacity_kg: 21000, fairing_diameter_m: 9 },
-        { id: 'vulcan', name: 'Vulcan', provider: 'ULA', leo_capacity_kg: 27200, gto_capacity_kg: 14400, fairing_diameter_m: 5.4 },
-        { id: 'a6', name: 'Ariane 6', provider: 'Arianespace', leo_capacity_kg: 21650, gto_capacity_kg: 10350, fairing_diameter_m: 5.4 },
-      ]
+  const vehicleList =
+    vehicles.length > 0
+      ? vehicles
+      : [
+          {
+            id: 'f9',
+            name: 'Falcon 9',
+            provider: 'SpaceX',
+            leo_capacity_kg: 22800,
+            gto_capacity_kg: 8300,
+            fairing_diameter_m: 5.2,
+          },
+        ]
 
-  const checksForCategory = result?.checks.filter((c) => c.category === activeCategory) ?? []
-
-  const scoreForVehicle = (vid: string) =>
-    result && result.vehicle_id === vid ? result.overall_score : null
+  const onUploadLoads = async (files: FileList | null) => {
+    const f = files?.[0]
+    if (!f || !projectId) return
+    try {
+      await uploadLaunchLoads(projectId, uploadKind, f)
+      await runSim()
+    } catch (e) {
+      setErr(formatApiError(e))
+    }
+  }
 
   return (
     <div className={`launch-panel ${compact ? 'launch-panel-compact' : ''}`}>
       {!hideHeader ? (
         <div className="panel-head">
           <h3 className="panel-title">
-            <span className="panel-icon">◉</span> Launch Integration
+            <span className="panel-icon">◉</span> Launch Physics Engine
           </h3>
-          <span className={`hud-chip hud-chip-${result?.overall_status === 'nominal' ? 'cyan' : 'orange'}`}>
-            {busy ? 'RUNNING…' : result ? `${result.overall_score}%` : 'SIM'}
+          <span
+            className={`hud-chip ${
+              result?.verdict === 'GO' ? 'hud-chip-cyan' : 'hud-chip-orange'
+            }`}
+          >
+            {busy ? 'RUNNING…' : result?.verdict ?? 'SIM'}
           </span>
         </div>
+      ) : null}
+
+      {result?.disclaimer ? (
+        <p className="launch-disclaimer muted">{result.disclaimer}</p>
       ) : null}
 
       <div className="launch-orbit-row">
@@ -120,16 +142,35 @@ export function LaunchCompatPanel({
             <option value="sso">SSO</option>
           </select>
         </label>
+        <label className="launch-orbit-label">
+          Override loads
+          <select
+            className="input-text launch-orbit-select"
+            value={uploadKind}
+            onChange={(e) => setUploadKind(e.target.value as 'psd' | 'srs')}
+          >
+            <option value="psd">PSD CSV</option>
+            <option value="srs">SRS CSV</option>
+          </select>
+        </label>
+        <button type="button" className="btn btn-ghost" onClick={() => fileRef.current?.click()}>
+          Upload MPE
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.json"
+          hidden
+          onChange={(e) => void onUploadLoads(e.target.files)}
+        />
         <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => void runSim()}>
-          Re-run integration
+          Re-run suite
         </button>
       </div>
 
       {(missing.length > 0 || massHint) && (
         <p className="launch-readiness muted">
-          {missing.length > 0
-            ? `Missing mission fields: ${missing.map((f) => f.label).join(', ')}. `
-            : ''}
+          {missing.length > 0 ? `Recommended fields: ${missing.map((f) => f.label).join(', ')}. ` : ''}
           {massHint ?? ''}
         </p>
       )}
@@ -138,20 +179,8 @@ export function LaunchCompatPanel({
 
       <div className="rocket-grid">
         {vehicleList.map((r) => {
-          const score = scoreForVehicle(r.id)
           const active = selected === r.id
-          const status =
-            score == null
-              ? 'idle'
-              : score >= 85
-                ? 'nominal'
-                : score >= 70
-                  ? 'review'
-                  : score >= 50
-                    ? 'caution'
-                    : 'fail'
-          const cap =
-            orbit === 'gto' ? r.gto_capacity_kg : orbit === 'sso' ? r.leo_capacity_kg * 0.7 : r.leo_capacity_kg
+          const score = result?.vehicle_id === r.id ? result.overall_score : null
           return (
             <button
               key={r.id}
@@ -161,39 +190,25 @@ export function LaunchCompatPanel({
             >
               <span className="rocket-name">{r.name}</span>
               <span className="rocket-provider muted">{r.provider}</span>
-              <div className="compat-bar">
-                <div
-                  className="compat-fill"
-                  style={{ width: `${score ?? (active ? 50 : 12)}%` }}
-                  data-status={status}
-                />
-              </div>
               {score != null ? (
                 <span className="mono compat-score">{score}%</span>
               ) : (
                 <span className="mono compat-score muted">—</span>
               )}
-              <span className="mono rocket-mass">{cap.toLocaleString()} kg</span>
             </button>
           )
         })}
       </div>
 
-      {busy && !result ? (
-        <LoadingIndicator label="Running launch integration checks…" />
-      ) : null}
+      {busy && !result ? <LoadingIndicator label="Running physics test suite…" /> : null}
 
       {result ? (
         <>
           <div className="launch-metrics">
             <div className="metric-tile">
-              <span className="metric-label">Envelope</span>
-              <span
-                className={`metric-value ${
-                  result.category_scores.envelope >= 85 ? 'glow-cyan' : 'glow-orange'
-                }`}
-              >
-                {result.category_scores.envelope}%
+              <span className="metric-label">Verdict</span>
+              <span className={`metric-value ${result.verdict === 'GO' ? 'glow-cyan' : 'glow-orange'}`}>
+                {result.verdict ?? result.overall_status}
               </span>
             </div>
             <div className="metric-tile">
@@ -202,74 +217,67 @@ export function LaunchCompatPanel({
             </div>
             <div className="metric-tile">
               <span className="metric-label">Mass margin</span>
-              <span
-                className={`metric-value mono ${
-                  result.mass_margin_pct >= 12 ? 'glow-cyan' : 'glow-orange'
-                }`}
-              >
-                {result.mass_margin_pct.toFixed(1)}%
-              </span>
+              <span className="metric-value mono">{result.mass_margin_pct.toFixed(1)}%</span>
             </div>
             <div className="metric-tile">
-              <span className="metric-label">CG offset</span>
-              <span className="metric-value mono">
-                {result.mass_properties.lateral_offset_mm?.toFixed(1) ?? '—'} mm
+              <span className="metric-label">Engine</span>
+              <span className="metric-value mono" style={{ fontSize: '0.65rem' }}>
+                {result.engine_version ?? 'v2'}
               </span>
             </div>
           </div>
 
-          <div className="launch-category-tabs">
-            {Object.entries(CATEGORY_LABELS).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className={`launch-cat-tab ${activeCategory === id ? 'launch-cat-tab-active' : ''}`}
-                onClick={() => setActiveCategory(id)}
-              >
-                {label}
-                <span className="mono launch-cat-score">{result.category_scores[id] ?? '—'}%</span>
-              </button>
-            ))}
-            <button
-              type="button"
-              className={`launch-cat-tab ${activeCategory === 'stress' ? 'launch-cat-tab-active' : ''}`}
-              onClick={() => setActiveCategory('stress')}
-            >
-              Stress test map
-            </button>
-          </div>
-
-          {activeCategory === 'stress' ? (
-            <LaunchStressMap result={result} mode={stressMode} onModeChange={setStressMode} />
-          ) : (
-            <ul className="launch-check-list">
-              {checksForCategory.map((c) => (
-                <li key={c.id} className={`launch-check launch-check-${c.status}`}>
-                  <div className="launch-check-head">
-                    <span className="warning-tag mono">{c.status.toUpperCase()}</span>
-                    <strong>{c.title}</strong>
-                  </div>
-                  <p className="mono launch-check-values">
-                    {c.value} <span className="muted">/ limit {c.limit}</span>
-                  </p>
-                  <p className="muted launch-check-detail">{c.detail}</p>
+          {result.blockers && result.blockers.length > 0 ? (
+            <ul className="launch-blockers">
+              {result.blockers.map((b) => (
+                <li key={b.id} className="launch-blocker">
+                  <span className="warning-tag mono">{b.status.toUpperCase()}</span>
+                  <strong>{b.title}</strong>
+                  <span className="muted">{b.detail}</span>
                 </li>
               ))}
             </ul>
+          ) : null}
+
+          <LaunchTestMatrix
+            tests={tests}
+            selectedId={selectedTestId}
+            onSelect={setSelectedTestId}
+          />
+
+          {selectedTest ? (
+            <div className="launch-test-detail card">
+              <h4>{selectedTest.title}</h4>
+              <p className="mono">
+                {selectedTest.value} / {selectedTest.limit}
+              </p>
+              <p className="muted">{selectedTest.detail}</p>
+              {selectedTest.assumptions?.length ? (
+                <ul className="launch-assumptions">
+                  {selectedTest.assumptions.map((a, i) => (
+                    <li key={i}>{a}</li>
+                  ))}
+                </ul>
+              ) : null}
+              {selectedTest.references?.length ? (
+                <p className="muted mono" style={{ fontSize: '0.68rem' }}>
+                  Ref: {selectedTest.references.join('; ')}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
+          <LaunchLoadCurves psd={psdArtifact} srs={srsArtifact} />
+
+          {result.stress_field?.fea_mode && result.stress_field.fea_mode !== 'none' ? (
+            <LaunchStressMap result={result} mode={stressMode} onModeChange={setStressMode} />
+          ) : (
+            <p className="muted" style={{ fontSize: '0.78rem' }}>
+              Structural FEA map requires annotated parts with mass and L×W×H dimensions.
+            </p>
           )}
 
-          <ul className="warning-list">
-            {result.warnings.slice(0, 6).map((w, i) => (
-              <li key={i} className={`warning-item warning-${w.level}`}>
-                <span className="warning-tag mono">{w.level.toUpperCase()}</span>
-                {w.text}
-              </li>
-            ))}
-          </ul>
-
-          <p className="muted launch-sim-note" style={{ fontSize: '0.72rem', marginTop: '0.5rem' }}>
-            {result.simulation.notes}
-          </p>
+          <p className="muted launch-sim-note">{result.simulation?.notes}</p>
         </>
       ) : null}
     </div>
