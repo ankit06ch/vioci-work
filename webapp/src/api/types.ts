@@ -18,6 +18,50 @@ export interface ProjectMeta {
   last_domain: string | null
   handdrawn: boolean
   has_diagram: boolean
+  image_enhanced?: boolean
+  image_quality_score?: number | null
+}
+
+export interface BBoxPx {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+export type AnnotationVectorKind = 'line' | 'polyline' | 'rect' | 'arrow'
+
+export interface AnnotationVector {
+  id: string
+  kind: AnnotationVectorKind
+  points: [number, number][]
+  auto: boolean
+  label?: string | null
+}
+
+export interface PartAnnotation {
+  id: string
+  node_id: string | null
+  name: string
+  auto_detected: boolean
+  bbox: BBoxPx | null
+  vectors: AnnotationVector[]
+  mass_kg: number | null
+  length_m: number | null
+  width_m: number | null
+  height_m: number | null
+  depth_m: number | null
+  volume_m3: number | null
+  material: string | null
+  power_w: number | null
+  notes: string | null
+  extra: Record<string, unknown>
+}
+
+export interface AnnotationsDocument {
+  annotations: PartAnnotation[]
+  image_enhanced: boolean
+  image_quality_score: number | null
 }
 
 export interface BBox {

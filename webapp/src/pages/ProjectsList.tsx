@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { deleteProject, formatApiError, imageUrl, listProjects } from '../api/client'
+import { deleteProject, formatApiError, listProjects } from '../api/client'
+import { LoadingIndicator } from '../components/LoadingIndicator'
+import { ProjectImage } from '../components/ProjectImage'
 import type { ProjectMeta } from '../api/types'
 
 function statusClass(status: string) {
@@ -44,7 +46,7 @@ export function ProjectsList() {
   }
 
   if (!rows) {
-    return <p className="loading-pulse">Scanning mission registry…</p>
+    return <LoadingIndicator label="Scanning mission registry…" size="md" block />
   }
 
   return (
@@ -70,13 +72,7 @@ export function ProjectsList() {
           {rows.map((p) => (
             <div key={p.id} className="proj-row card">
               <Link to={`/projects/${p.id}`}>
-                <img
-                  src={imageUrl(p.id)}
-                  alt=""
-                  onError={(e) => {
-                    ;(e.target as HTMLImageElement).style.visibility = 'hidden'
-                  }}
-                />
+                <ProjectImage projectId={p.id} alt={p.name} />
               </Link>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <Link to={`/projects/${p.id}`}>

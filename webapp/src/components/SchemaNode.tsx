@@ -7,13 +7,13 @@ export function SchemaNode({ data }: NodeProps<{ label: string }>) {
       <Handle
         type="target"
         position={Position.Left}
-        style={{ background: '#22d3ee', width: 6, height: 6, border: 'none' }}
+        style={{ background: '#ff7a59', width: 6, height: 6, border: 'none' }}
       />
       <div style={{ padding: '5px 8px' }}>{data.label}</div>
       <Handle
         type="source"
         position={Position.Right}
-        style={{ background: '#f97316', width: 6, height: 6, border: 'none' }}
+        style={{ background: '#ff7a59', width: 6, height: 6, border: 'none' }}
       />
     </div>
   )

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { LoadingIndicator } from '../components/LoadingIndicator'
 import {
   API_BASE,
   API_SECTIONS,
@@ -91,7 +92,7 @@ export function Docs() {
           <p className="error">API index unreachable ({apiErr}). Start backend: make dev</p>
         </div>
       ) : (
-        <p className="loading-pulse">Checking API…</p>
+        <LoadingIndicator label="Checking API…" size="sm" />
       )}
 
       <div className="docs-layout">

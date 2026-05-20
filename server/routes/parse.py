@@ -16,6 +16,24 @@ from server.state import get_engine
 router = APIRouter(prefix="/projects", tags=["parse"])
 
 
+def enqueue_parse(project_id: str, body: ParseRequest | None = None) -> None:
+    """Queue background IR parse for a project that already has a source image."""
+    req = body or ParseRequest()
+    with Session(get_engine()) as session:
+        rec = session.get(ProjectRecord, project_id)
+        if rec:
+            rec.parse_status = "queued"
+            rec.parse_error = None
+            session.add(rec)
+            session.commit()
+    threading.Thread(
+        target=_run_parse,
+        args=(project_id, req),
+        daemon=True,
+        name=f"parse-{project_id[:8]}",
+    ).start()
+
+
 def _run_parse(project_id: str, _body: ParseRequest) -> None:
     from schemagraph.autodetect import infer_annotation_domain, infer_handdrawn
 
@@ -82,8 +100,12 @@ def _run_parse(project_id: str, _body: ParseRequest) -> None:
             },
         )
         diagram = schemagraph.annotate(diagram, domain=ann_domain)
+        payload = diagram.model_dump(mode="json")
         with Session(get_engine()) as session:
-            storage.save_diagram_json(session, project_id, diagram.model_dump(mode="json"))
+            storage.save_diagram_json(session, project_id, payload)
+            from server.annotation_service import sync_from_diagram
+
+            sync_from_diagram(session, project_id, payload)
     except Exception as e:
         _fail(str(e))
         return
@@ -115,17 +137,5 @@ def queue_parse(
     if storage.get_image(session, project_id) is None:
         raise HTTPException(400, "project has no source image")
 
-    rec = session.get(ProjectRecord, project_id)
-    if rec:
-        rec.parse_status = "queued"
-        session.add(rec)
-        session.commit()
-
-    req = body or ParseRequest()
-    threading.Thread(
-        target=_run_parse,
-        args=(project_id, req),
-        daemon=True,
-        name=f"parse-{project_id[:8]}",
-    ).start()
+    enqueue_parse(project_id, body)
     return ParseQueued()

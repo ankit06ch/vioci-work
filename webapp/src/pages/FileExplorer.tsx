@@ -5,7 +5,6 @@ import {
   deleteFolder,
   deleteProject,
   formatApiError,
-  imageUrl,
   listFolders,
   listProjects,
   moveProjectToFolder,
@@ -15,6 +14,8 @@ import {
 } from '../api/client'
 import type { ProjectMeta, SchemaFolder, WsEvent } from '../api/types'
 import { ExplorerTree } from '../components/ExplorerTree'
+import { LoadingIndicator } from '../components/LoadingIndicator'
+import { ProjectImage } from '../components/ProjectImage'
 
 const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf'
 
@@ -114,23 +115,58 @@ export function FileExplorer() {
     return () => clearInterval(t)
   }, [rows, refresh])
 
+  const attachParseEvents = useCallback(
+    (projectId: string) => {
+      setConverting(true)
+      setParseLog([])
+      wsRef.current?.close()
+      const ws = openProjectEvents(projectId, (ev: WsEvent) => {
+        const line = ev.message
+          ? `${ev.phase ?? ev.type}: ${ev.message}`
+          : `${ev.type}${ev.progress != null ? ` (${Math.round(ev.progress * 100)}%)` : ''}`
+        setParseLog((prev) => [...prev.slice(-40), line])
+        if (ev.type === 'error' || (ev.phase === 'done' && ev.progress === 1)) {
+          void refresh()
+        }
+      })
+      wsRef.current = ws
+      ws.onclose = () => {
+        setConverting(false)
+        wsRef.current = null
+        void refresh()
+      }
+    },
+    [refresh],
+  )
+
   const onUpload = useCallback(
-    async (files: FileList | File[] | null) => {
+    async (files: FileList | File[] | null, folderId: string | null = selectedFolderId) => {
       const list = files ? Array.from(files) : []
       if (!list.length) return
       setBusy(true)
       setErr(null)
       try {
-        const created = await uploadProjects(list, selectedFolderId)
+        const created = await uploadProjects(list, folderId)
         await refresh()
-        if (created.length) setSelectedId(created[0].id)
+        if (created.length) {
+          const firstId = created[0].id
+          setSelectedId(firstId)
+          setRows((cur) =>
+            (cur ?? []).map((r) =>
+              created.some((p) => p.id === r.id)
+                ? { ...r, parse_status: 'queued' as const }
+                : r,
+            ),
+          )
+          attachParseEvents(firstId)
+        }
       } catch (e) {
         setErr(formatApiError(e))
       } finally {
         setBusy(false)
       }
     },
-    [refresh, selectedFolderId],
+    [refresh, selectedFolderId, attachParseEvents],
   )
 
   const onCreateFolder = useCallback(
@@ -174,8 +210,6 @@ export function FileExplorer() {
 
   const onConvert = useCallback(async () => {
     if (!selected) return
-    setConverting(true)
-    setParseLog([])
     setErr(null)
     try {
       await queueParse(selected.id)
@@ -184,27 +218,12 @@ export function FileExplorer() {
           r.id === selected.id ? { ...r, parse_status: 'queued' as const } : r,
         ),
       )
-      wsRef.current?.close()
-      const ws = openProjectEvents(selected.id, (ev: WsEvent) => {
-        const line = ev.message
-          ? `${ev.phase ?? ev.type}: ${ev.message}`
-          : `${ev.type}${ev.progress != null ? ` (${Math.round(ev.progress * 100)}%)` : ''}`
-        setParseLog((prev) => [...prev.slice(-40), line])
-        if (ev.type === 'error' || (ev.phase === 'done' && ev.progress === 1)) {
-          void refresh()
-        }
-      })
-      wsRef.current = ws
-      ws.onclose = () => {
-        setConverting(false)
-        wsRef.current = null
-        void refresh()
-      }
+      attachParseEvents(selected.id)
     } catch (e) {
       setErr(formatApiError(e))
       setConverting(false)
     }
-  }, [selected, refresh])
+  }, [selected, refresh, attachParseEvents])
 
   const onDelete = useCallback(async () => {
     if (!selected) return
@@ -219,51 +238,64 @@ export function FileExplorer() {
     }
   }, [selected, rows])
 
-  if (err && !rows) {
-    return (
-      <div className="card">
-        <p className="error">{err}</p>
-        <p className="muted">Run `make dev` so the API is available on port 8000.</p>
-      </div>
-    )
-  }
-
-  const uploadTarget =
+  const uploadTargetName =
     selectedFolderId != null
       ? folders.find((f) => f.id === selectedFolderId)?.name ?? 'folder'
       : 'schematics'
 
+  if (err && !rows) {
+    return (
+      <div className="file-explorer-full">
+        <p className="error" style={{ padding: '1.5rem' }}>
+          {err}
+        </p>
+        <p className="muted" style={{ padding: '0 1.5rem' }}>
+          Run `make dev` so the API is available on port 8000.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div
-      className={`file-explorer ${drag ? 'file-explorer-drag' : ''}`}
+      className={`file-explorer-full ${drag ? 'file-explorer-drag' : ''}`}
       onDragOver={(e) => {
-        e.preventDefault()
-        setDrag(true)
+        if (e.dataTransfer.types.includes('Files')) {
+          e.preventDefault()
+          setDrag(true)
+        }
       }}
       onDragLeave={(e) => {
-        if (e.currentTarget === e.target) setDrag(false)
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDrag(false)
       }}
       onDrop={(e) => {
+        if (!e.dataTransfer.files?.length) return
         e.preventDefault()
         setDrag(false)
-        void onUpload(e.dataTransfer.files)
+        void onUpload(e.dataTransfer.files, selectedFolderId)
       }}
     >
-      <header className="page-header explorer-header">
-        <div>
-          <h2>Schematic Explorer</h2>
-          <p className="muted">
-            Organize schematics in folders, convert to machine-readable graphs, open the workspace
-          </p>
-        </div>
-        <div className="explorer-toolbar">
+      <div className="explorer-chrome">
+        <span className="explorer-chrome-title">Schematic Explorer</span>
+        <div className="explorer-chrome-actions">
+          <span className="muted mono explorer-chrome-hint">
+            Drop onto folders · {rows?.length ?? '…'} files
+          </span>
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-ghost"
+            onClick={() => setCreatingFolder((c) => !c)}
+          >
+            {creatingFolder ? 'Cancel folder' : 'New folder'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
             disabled={busy}
             onClick={() => inputRef.current?.click()}
+            title={`Upload to ${uploadTargetName}`}
           >
-            {busy ? 'Uploading…' : `Upload to ${uploadTarget}`}
+            {busy ? 'Uploading…' : 'Upload'}
           </button>
           <button type="button" className="btn btn-ghost" disabled={!rows} onClick={() => void refresh()}>
             Refresh
@@ -277,28 +309,14 @@ export function FileExplorer() {
             onChange={(e) => void onUpload(e.target.files)}
           />
         </div>
-      </header>
+      </div>
 
-      {err ? <p className="error explorer-err">{err}</p> : null}
+      {err ? <p className="error explorer-chrome-err">{err}</p> : null}
 
-      <div className="explorer-layout card">
-        <aside className="explorer-tree" aria-label="Schematic files">
-          <div className="explorer-tree-head">
-            <span className="mono">PATH</span>
-            <div className="explorer-tree-head-actions">
-              <button
-                type="button"
-                className="btn btn-ghost explorer-new-folder-btn"
-                onClick={() => setCreatingFolder((c) => !c)}
-              >
-                {creatingFolder ? 'Cancel' : '+ Folder'}
-              </button>
-              <span className="muted">{rows?.length ?? '…'} files</span>
-            </div>
-          </div>
-
+      <div className="explorer-body">
+        <aside className="explorer-tree-pane" aria-label="Schematic files">
           {!rows ? (
-            <p className="loading-pulse explorer-loading">Loading registry…</p>
+            <LoadingIndicator className="explorer-loading" label="Loading schematics…" size="md" block />
           ) : (
             <ExplorerTree
               folders={folders}
@@ -311,6 +329,7 @@ export function FileExplorer() {
               onCreateFolder={(name, parentId) => void onCreateFolder(name, parentId)}
               onDeleteFolder={(id) => void onDeleteFolder(id)}
               onMoveProject={(pid, fid) => void onMoveProject(pid, fid)}
+              onUploadToFolder={(fid, files) => void onUpload(files, fid)}
               statusClass={statusClass}
               statusLabel={statusLabel}
               creatingFolder={creatingFolder}
@@ -319,31 +338,28 @@ export function FileExplorer() {
           )}
         </aside>
 
-        <section className="explorer-detail">
+        <section className="explorer-detail-pane">
           {!selected ? (
             <div className="explorer-detail-empty">
-              <p className="muted">Select a schematic or drop files anywhere to upload.</p>
-              <div className="explorer-drop-hint">
-                <span className="mono">image/* · PDF</span>
-              </div>
+              <p className="muted">Select a schematic in the tree, or drop files onto a folder.</p>
+              <p className="mono explorer-drop-hint">image/* · PDF</p>
             </div>
           ) : (
             <>
               <div className="explorer-detail-head">
                 <div>
                   <h3>{selected.name}</h3>
-                  <p className="muted mono" style={{ fontSize: '0.72rem' }}>
-                    {selected.id}
+                  <p className="muted mono explorer-detail-id">
                     {selected.folder_id
-                      ? ` · ${folders.find((f) => f.id === selected.folder_id)?.name ?? 'folder'}`
-                      : ''}
+                      ? folders.find((f) => f.id === selected.folder_id)?.name ?? 'folder'
+                      : 'schematics'}
                   </p>
                 </div>
                 <span className={`badge ${statusClass(selected)}`}>{statusLabel(selected)}</span>
               </div>
 
               <div className="explorer-preview">
-                <img src={imageUrl(selected.id)} alt="" />
+                <ProjectImage projectId={selected.id} alt={selected.name} />
               </div>
 
               <dl className="explorer-meta">
@@ -386,7 +402,9 @@ export function FileExplorer() {
                 >
                   {selected.has_diagram
                     ? 'Re-convert'
-                    : converting || selected.parse_status === 'running'
+                    : converting ||
+                        selected.parse_status === 'running' ||
+                        selected.parse_status === 'queued'
                       ? 'Converting…'
                       : 'Convert to graph'}
                 </button>
@@ -405,7 +423,11 @@ export function FileExplorer() {
         </section>
       </div>
 
-      {drag ? <div className="explorer-drag-overlay">Drop schematics to upload</div> : null}
+      {drag ? (
+        <div className="explorer-drag-overlay">
+          Upload to {uploadTargetName}
+        </div>
+      ) : null}
     </div>
   )
 }

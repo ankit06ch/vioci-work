@@ -21,9 +21,11 @@ export function AuthLayout({ children, showcaseActive }: Props) {
 
   return (
     <div className="auth-experience">
-      <div className="auth-ambient">
-        <div className="auth-grid-bg" />
-        <div className="auth-orbital" />
+      <div className="auth-ambient cinematic-bg">
+        <span className="cinematic-bg-bloom cinematic-bg-bloom--ember" />
+        <span className="cinematic-bg-bloom cinematic-bg-bloom--honey" />
+        <span className="cinematic-bg-bloom cinematic-bg-bloom--amber" />
+        <span className="cinematic-bg-grain" />
         <div className="auth-particles">
           {particles.map((p) => (
             <span

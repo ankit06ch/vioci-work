@@ -14,19 +14,21 @@ const WARNINGS = [
   { level: 'crit', text: 'Vibration mode coupling near 42 Hz — review isolators' },
 ] as const
 
-type Props = { compact?: boolean }
+type Props = { compact?: boolean; hideHeader?: boolean }
 
-export function LaunchCompatPanel({ compact }: Props) {
+export function LaunchCompatPanel({ compact, hideHeader }: Props) {
   const [selected, setSelected] = useState('f9')
 
   return (
     <div className={`launch-panel ${compact ? 'launch-panel-compact' : ''}`}>
-      <div className="panel-head">
-        <h3 className="panel-title">
-          <span className="panel-icon">◉</span> Launch Compatibility Engine
-        </h3>
-        <span className="hud-chip hud-chip-orange">SIM ACTIVE</span>
-      </div>
+      {!hideHeader ? (
+        <div className="panel-head">
+          <h3 className="panel-title">
+            <span className="panel-icon">◉</span> Launch Compatibility Engine
+          </h3>
+          <span className="hud-chip hud-chip-orange">SIM ACTIVE</span>
+        </div>
+      ) : null}
 
       <div className="rocket-grid">
         {ROCKETS.map((r) => (

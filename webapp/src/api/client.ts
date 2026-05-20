@@ -1,5 +1,13 @@
 import axios, { isAxiosError } from 'axios'
-import type { Diagram, ProjectMeta, SchemaFolder, SimulateResult, WsEvent } from './types'
+import type {
+  AnnotationsDocument,
+  Diagram,
+  PartAnnotation,
+  ProjectMeta,
+  SchemaFolder,
+  SimulateResult,
+  WsEvent,
+} from './types'
 import { getStoredToken } from '../state/auth'
 
 export const http = axios.create({
@@ -196,5 +204,41 @@ export async function runSweep(
   axis: Record<string, unknown[]>,
 ): Promise<{ overrides: Record<string, unknown>; result?: SimulateResult; error?: string }[]> {
   const { data } = await http.post(`/api/projects/${projectId}/sweep`, { engine, axis })
+  return data
+}
+
+export async function getAnnotations(projectId: string): Promise<AnnotationsDocument> {
+  const { data } = await http.get<AnnotationsDocument>(`/api/projects/${projectId}/annotations`)
+  return data
+}
+
+export async function saveAnnotations(
+  projectId: string,
+  annotations: PartAnnotation[],
+): Promise<AnnotationsDocument> {
+  const { data } = await http.put<AnnotationsDocument>(`/api/projects/${projectId}/annotations`, {
+    annotations,
+  })
+  return data
+}
+
+export async function syncAnnotations(projectId: string): Promise<AnnotationsDocument> {
+  const { data } = await http.post<AnnotationsDocument>(
+    `/api/projects/${projectId}/annotations/sync`,
+  )
+  return data
+}
+
+export async function autoDetectAnnotations(projectId: string): Promise<AnnotationsDocument> {
+  const { data } = await http.post<AnnotationsDocument>(
+    `/api/projects/${projectId}/annotations/auto-detect`,
+  )
+  return data
+}
+
+export async function enhanceProjectImage(
+  projectId: string,
+): Promise<{ enhanced: boolean; quality_score: number; message: string }> {
+  const { data } = await http.post(`/api/projects/${projectId}/image/enhance`)
   return data
 }

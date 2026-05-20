@@ -35,6 +35,8 @@ class ProjectOut(BaseModel):
     last_domain: str | None = None
     handdrawn: bool = False
     has_diagram: bool = False
+    image_enhanced: bool = False
+    image_quality_score: float | None = None
 
 
 class UploadResponse(BaseModel):

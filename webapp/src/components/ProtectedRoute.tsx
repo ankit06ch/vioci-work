@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { fetchMe } from '../api/auth'
 import { formatApiError } from '../api/client'
+import { LoadingIndicator } from './LoadingIndicator'
 import { useAuthStore } from '../state/auth'
 
 type Props = { children: ReactNode }
@@ -44,7 +45,7 @@ export function ProtectedRoute({ children }: Props) {
   }
 
   if (checking) {
-    return <p className="loading-pulse">Authenticating…</p>
+    return <LoadingIndicator label="Authenticating…" size="md" block />
   }
 
   if (!user) {

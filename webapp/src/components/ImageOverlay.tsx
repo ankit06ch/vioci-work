@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { DiagramNode } from '../api/types'
+import { classifySubsystem, type Subsystem } from '../lib/subsystems'
+import { ProjectImage } from './ProjectImage'
 import { useSelectionStore } from '../state/project'
 
 export function bboxForNode(n: DiagramNode) {
@@ -42,12 +44,13 @@ export function bboxForNode(n: DiagramNode) {
 }
 
 type Props = {
-  imageSrc: string
+  projectId: string
   nodes: DiagramNode[]
+  activeSubsystem?: Subsystem
   onDropCsv?: (nodeId: string, file: File) => void
 }
 
-export function ImageOverlay({ imageSrc, nodes, onDropCsv }: Props) {
+export function ImageOverlay({ projectId, nodes, activeSubsystem, onDropCsv }: Props) {
   const selected = useSelectionStore((s) => s.selectedNodeId)
   const setSel = useSelectionStore((s) => s.setSelected)
   const [dim, setDim] = useState({ w: 0, h: 0 })
@@ -59,11 +62,13 @@ export function ImageOverlay({ imageSrc, nodes, onDropCsv }: Props) {
 
   return (
     <div className="workspace-canvas">
-      <span className="canvas-corner">DIAGRAM OVERLAY · SELECT SUBSYSTEM</span>
-      <img
-        src={imageSrc}
-        alt="source"
+      <span className="canvas-corner">
+        DIAGRAM OVERLAY · {activeSubsystem?.toUpperCase() ?? 'ALL'}
+      </span>
+      <ProjectImage
+        projectId={projectId}
         className="canvas-img"
+        alt="Schematic"
         onLoad={(e) => {
           const t = e.currentTarget
           setDim({ w: t.naturalWidth, h: t.naturalHeight })
@@ -85,6 +90,8 @@ export function ImageOverlay({ imageSrc, nodes, onDropCsv }: Props) {
           {nodes.map((n) => {
             const bb = bboxForNode(n)
             if (!bb) return null
+            const inSubsystem =
+              !activeSubsystem || classifySubsystem(n) === activeSubsystem
             const cls = n.id === selected ? 'hotspot hotspot-selected' : 'hotspot'
             return (
               <rect
@@ -94,7 +101,10 @@ export function ImageOverlay({ imageSrc, nodes, onDropCsv }: Props) {
                 width={bb.w}
                 height={bb.h}
                 className={cls}
-                style={{ pointerEvents: 'auto' }}
+                style={{
+                  pointerEvents: inSubsystem ? 'auto' : 'none',
+                  opacity: inSubsystem ? 1 : 0.22,
+                }}
                 onClick={() => setSel(n.id)}
                 onDragOver={onDropCsv ? onDragOver : undefined}
                 onDrop={

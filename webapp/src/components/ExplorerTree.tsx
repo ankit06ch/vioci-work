@@ -12,10 +12,40 @@ type Props = {
   onCreateFolder: (name: string, parentId: string | null) => void
   onDeleteFolder: (folderId: string) => void
   onMoveProject: (projectId: string, folderId: string | null) => void
+  onUploadToFolder: (folderId: string | null, files: FileList) => void
   statusClass: (p: ProjectMeta) => string
   statusLabel: (p: ProjectMeta) => string
   creatingFolder: boolean
   onCancelCreateFolder: () => void
+}
+
+type DropTarget = 'root' | string
+
+function handleDrop(
+  e: React.DragEvent,
+  target: DropTarget,
+  onMoveProject: (projectId: string, folderId: string | null) => void,
+  onUploadToFolder: (folderId: string | null, files: FileList) => void,
+) {
+  e.preventDefault()
+  e.stopPropagation()
+  const folderId = target === 'root' ? null : target
+  if (e.dataTransfer.files?.length) {
+    onUploadToFolder(folderId, e.dataTransfer.files)
+    return
+  }
+  const pid = e.dataTransfer.getData('text/project-id')
+  if (pid) onMoveProject(pid, folderId)
+}
+
+function handleDragOver(e: React.DragEvent) {
+  e.preventDefault()
+  e.stopPropagation()
+  if (e.dataTransfer.types.includes('Files')) {
+    e.dataTransfer.dropEffect = 'copy'
+  } else {
+    e.dataTransfer.dropEffect = 'move'
+  }
 }
 
 type FolderBranchProps = {
@@ -27,12 +57,15 @@ type FolderBranchProps = {
   depth: number
   selectedProjectId: string | null
   selectedFolderId: string | null
+  dropHighlight: DropTarget | null
   onSelectProject: (id: string) => void
   onSelectFolder: (id: string | null) => void
   onOpenProject: (id: string) => void
   onCreateFolder: (name: string, parentId: string | null) => void
   onDeleteFolder: (folderId: string) => void
   onMoveProject: (projectId: string, folderId: string | null) => void
+  onUploadToFolder: (folderId: string | null, files: FileList) => void
+  onDropHighlight: (target: DropTarget | null) => void
   statusClassFn: (p: ProjectMeta) => string
   statusLabelFn: (p: ProjectMeta) => string
 }
@@ -46,12 +79,15 @@ function FolderBranch({
   depth,
   selectedProjectId,
   selectedFolderId,
+  dropHighlight,
   onSelectProject,
   onSelectFolder,
   onOpenProject,
   onCreateFolder,
   onDeleteFolder,
   onMoveProject,
+  onUploadToFolder,
+  onDropHighlight,
   statusClassFn,
   statusLabelFn,
 }: FolderBranchProps) {
@@ -74,19 +110,17 @@ function FolderBranch({
       <div className="explorer-tree-row" style={pad}>
         <button
           type="button"
-          className={`explorer-folder ${selectedFolderId === folder.id ? 'explorer-folder-active' : ''}`}
+          className={`explorer-folder ${selectedFolderId === folder.id ? 'explorer-folder-active' : ''} ${dropHighlight === folder.id ? 'explorer-drop-target' : ''}`}
           onClick={() => {
             onSelectFolder(folder.id)
             setOpen((o) => !o)
           }}
-          onDragOver={(e) => {
-            e.preventDefault()
-            e.dataTransfer.dropEffect = 'move'
-          }}
+          onDragEnter={() => onDropHighlight(folder.id)}
+          onDragLeave={() => onDropHighlight(null)}
+          onDragOver={handleDragOver}
           onDrop={(e) => {
-            e.preventDefault()
-            const pid = e.dataTransfer.getData('text/project-id')
-            if (pid) onMoveProject(pid, folder.id)
+            handleDrop(e, folder.id, onMoveProject, onUploadToFolder)
+            onDropHighlight(null)
           }}
         >
           <span className="explorer-chevron">{open ? '▾' : '▸'}</span>
@@ -155,12 +189,15 @@ function FolderBranch({
               depth={depth + 1}
               selectedProjectId={selectedProjectId}
               selectedFolderId={selectedFolderId}
+              dropHighlight={dropHighlight}
               onSelectProject={onSelectProject}
               onSelectFolder={onSelectFolder}
               onOpenProject={onOpenProject}
               onCreateFolder={onCreateFolder}
               onDeleteFolder={onDeleteFolder}
               onMoveProject={onMoveProject}
+              onUploadToFolder={onUploadToFolder}
+              onDropHighlight={onDropHighlight}
               statusClassFn={statusClassFn}
               statusLabelFn={statusLabelFn}
             />
@@ -208,6 +245,7 @@ export function ExplorerTree({
   onCreateFolder,
   onDeleteFolder,
   onMoveProject,
+  onUploadToFolder,
   statusClass,
   statusLabel,
   creatingFolder,
@@ -215,6 +253,7 @@ export function ExplorerTree({
 }: Props) {
   const [rootOpen, setRootOpen] = useState(true)
   const [newFolderName, setNewFolderName] = useState('')
+  const [dropHighlight, setDropHighlight] = useState<DropTarget | null>(null)
 
   const rootFolders = useMemo(
     () => folders.filter((f) => !f.parent_id).sort((a, b) => a.name.localeCompare(b.name)),
@@ -225,26 +264,22 @@ export function ExplorerTree({
     [projects],
   )
 
-  const onFolderDrop = (folderId: string | null, e: React.DragEvent) => {
-    e.preventDefault()
-    const pid = e.dataTransfer.getData('text/project-id')
-    if (pid) onMoveProject(pid, folderId)
-  }
-
   return (
-    <>
+    <div className="explorer-tree-inner">
       <button
         type="button"
-        className={`explorer-folder explorer-root ${selectedFolderId === null ? 'explorer-folder-active' : ''}`}
+        className={`explorer-folder explorer-root ${selectedFolderId === null ? 'explorer-folder-active' : ''} ${dropHighlight === 'root' ? 'explorer-drop-target' : ''}`}
         onClick={() => {
           onSelectFolder(null)
           setRootOpen((o) => !o)
         }}
-        onDragOver={(e) => {
-          e.preventDefault()
-          e.dataTransfer.dropEffect = 'move'
+        onDragEnter={() => setDropHighlight('root')}
+        onDragLeave={() => setDropHighlight(null)}
+        onDragOver={handleDragOver}
+        onDrop={(e) => {
+          handleDrop(e, 'root', onMoveProject, onUploadToFolder)
+          setDropHighlight(null)
         }}
-        onDrop={(e) => onFolderDrop(null, e)}
       >
         <span className="explorer-chevron">{rootOpen ? '▾' : '▸'}</span>
         <span className="explorer-folder-icon">📁</span>
@@ -264,12 +299,15 @@ export function ExplorerTree({
               depth={0}
               selectedProjectId={selectedProjectId}
               selectedFolderId={selectedFolderId}
+              dropHighlight={dropHighlight}
               onSelectProject={onSelectProject}
               onSelectFolder={onSelectFolder}
               onOpenProject={onOpenProject}
               onCreateFolder={onCreateFolder}
               onDeleteFolder={onDeleteFolder}
               onMoveProject={onMoveProject}
+              onUploadToFolder={onUploadToFolder}
+              onDropHighlight={setDropHighlight}
               statusClassFn={statusClass}
               statusLabelFn={statusLabel}
             />
@@ -301,7 +339,7 @@ export function ExplorerTree({
           ))}
 
           {!rootFolders.length && !rootProjects.length ? (
-            <li className="explorer-empty muted">No files — upload schematics or create a folder</li>
+            <li className="explorer-empty muted">Drop files on a folder to upload</li>
           ) : null}
         </ul>
       )}
@@ -334,6 +372,6 @@ export function ExplorerTree({
           </button>
         </form>
       ) : null}
-    </>
+    </div>
   )
 }

@@ -1,8 +1,8 @@
-/** Recharts styling for dark mission-control panels */
+/** Recharts styling for cinematic mission-control panels */
 export const CHART = {
-  grid: '#1e3a4f',
-  axis: '#64748b',
-  tooltipBg: '#0f1419',
-  tooltipBorder: '#22d3ee33',
-  series: ['#22d3ee', '#f97316', '#3b82f6', '#a78bfa', '#34d399'],
+  grid: '#2a2028',
+  axis: '#7a7276',
+  tooltipBg: '#1b171b',
+  tooltipBorder: '#ff7a5933',
+  series: ['#ff7a59', '#ff8f4a', '#e8956a', '#d97757', '#c9a87a'],
 } as const

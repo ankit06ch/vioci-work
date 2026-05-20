@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { VIOCI_LOGO_SRC } from '../../brand'
+import { VIOCI_ICON_SRC } from '../../brand'
 
 const BOOT_LINES = [
   'VIOCI mission integration — boot sequence',
@@ -40,7 +40,7 @@ export function BootSequence({ onComplete }: Props) {
 
   return (
     <div className={`boot-overlay ${exiting ? 'exiting' : ''}`}>
-      <img src={VIOCI_LOGO_SRC} alt="" className="boot-logo vioci-logo" />
+      <img src={VIOCI_ICON_SRC} alt="" className="boot-logo vioci-logo" />
       <div className="boot-lines">
         {BOOT_LINES.map((line, i) => (
           <div

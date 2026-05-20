@@ -7,7 +7,15 @@ import sqlite3
 from sqlalchemy import inspect, text
 from sqlmodel import SQLModel, create_engine
 
-from server.models import Organization, ProjectDiagram, ProjectImage, ProjectRecord, SchemaFolder, User
+from server.models import (
+    Organization,
+    ProjectAnnotations,
+    ProjectDiagram,
+    ProjectImage,
+    ProjectRecord,
+    SchemaFolder,
+    User,
+)
 from server.settings import get_server_settings
 from server.workspace import ensure_workspace, index_db_path
 
@@ -61,6 +69,11 @@ def _migrate_project_columns(engine) -> None:
         stmts.append("ALTER TABLE project ADD COLUMN organization_id VARCHAR")
     if "folder_id" not in cols:
         stmts.append("ALTER TABLE project ADD COLUMN folder_id VARCHAR")
+    if "image_enhanced" not in cols:
+        bool_default = "FALSE" if engine.dialect.name == "postgresql" else "0"
+        stmts.append(f"ALTER TABLE project ADD COLUMN image_enhanced BOOLEAN DEFAULT {bool_default}")
+    if "image_quality_score" not in cols:
+        stmts.append("ALTER TABLE project ADD COLUMN image_quality_score FLOAT")
     if not stmts:
         return
     with engine.begin() as conn:

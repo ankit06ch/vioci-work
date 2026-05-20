@@ -39,6 +39,17 @@ export function AppShell({ children }: Props) {
   }, [])
 
   const utc = clock.toISOString().slice(11, 19)
+  const isExplorerHome = loc.pathname === '/' || loc.pathname === '/upload'
+  const isProjectWorkspace = loc.pathname.startsWith('/projects/')
+  const isDocsPage = loc.pathname === '/docs'
+  const mainContentClass = [
+    'main-content',
+    isExplorerHome && 'main-content-explorer',
+    isProjectWorkspace && 'main-content-workspace',
+    isDocsPage && 'main-content-scroll',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   if (isAuthPage) {
     return <>{children}</>
@@ -46,7 +57,12 @@ export function AppShell({ children }: Props) {
 
   return (
     <div className="app-shell">
-      <div className="scanlines" aria-hidden />
+      <div className="cinematic-bg" aria-hidden>
+        <span className="cinematic-bg-bloom cinematic-bg-bloom--ember" />
+        <span className="cinematic-bg-bloom cinematic-bg-bloom--honey" />
+        <span className="cinematic-bg-bloom cinematic-bg-bloom--amber" />
+        <span className="cinematic-bg-grain" />
+      </div>
       <aside className="sidebar" aria-label="Main navigation">
         <div className="sidebar-brand">
           <Link to="/" className="brand-link" title="Mission Integration">
@@ -65,11 +81,6 @@ export function AppShell({ children }: Props) {
               <span className="brand-name">Mission Integration</span>
             </div>
           </Link>
-        </div>
-
-        <div className="sidebar-status sidebar-expand-only">
-          <span className="status-dot live" />
-          <span className="mono">SYS NOMINAL</span>
         </div>
 
         <nav className="sidebar-nav">
@@ -110,11 +121,17 @@ export function AppShell({ children }: Props) {
       </aside>
 
       <div className="main-column">
-        <header className="top-bar">
-          <div className="top-bar-left">
-            <h1 className="top-title">Schemagraph Integration Platform</h1>
-            <span className="top-sub">Diagram → IR → Simulation · AI-assisted engineering</span>
-          </div>
+        <header
+          className={`top-bar ${isExplorerHome || isProjectWorkspace ? 'top-bar-minimal' : ''}`}
+        >
+          {!isExplorerHome && !isProjectWorkspace ? (
+            <div className="top-bar-left">
+              <h1 className="top-title">Component Simulation Platform</h1>
+              <span className="top-sub">Diagram → IR → Simulation · AI-assisted engineering</span>
+            </div>
+          ) : (
+            <div className="top-bar-left" />
+          )}
           <div className="top-bar-right">
             {user ? (
               <span className="muted mono" style={{ fontSize: '0.72rem' }}>
@@ -139,10 +156,11 @@ export function AppShell({ children }: Props) {
             >
               Sign out
             </button>
-            <span className="hud-chip hud-chip-cyan">LIVE</span>
           </div>
         </header>
-        <main className="main-content">{children}</main>
+        <main className={mainContentClass}>
+          {children}
+        </main>
       </div>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

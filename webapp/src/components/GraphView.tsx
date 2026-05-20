@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import ReactFlow, {
   Background,
   BackgroundVariant,
@@ -7,6 +7,7 @@ import ReactFlow, {
   ReactFlowProvider,
   useEdgesState,
   useNodesState,
+  useReactFlow,
 } from 'reactflow'
 import type { Edge, Node } from 'reactflow'
 import 'reactflow/dist/style.css'
@@ -16,6 +17,21 @@ import { SchemaNode } from './SchemaNode'
 import { useSelectionStore } from '../state/project'
 
 const nodeTypes = { schema: SchemaNode }
+
+function nodeStyle(selected: boolean): CSSProperties {
+  return {
+    borderRadius: 4,
+    border: selected ? '1px solid #ff8f4a' : '1px solid rgba(255, 122, 89, 0.32)',
+    background: selected ? 'rgba(255, 122, 89, 0.12)' : 'rgba(27, 23, 27, 0.92)',
+    color: '#f3f1f1',
+    fontSize: 11,
+    fontWeight: 600,
+    fontFamily: 'JetBrains Mono, monospace',
+    boxShadow: selected
+      ? '0 0 16px rgba(255, 122, 89, 0.22)'
+      : '0 0 10px rgba(255, 122, 89, 0.06)',
+  }
+}
 
 function nodePosition(n: DiagramNode, i: number) {
   const bb = bboxForNode(n)
@@ -46,31 +62,21 @@ export function GraphViewWithProvider(props: Props) {
 function GraphViewInner({ diagram }: Props) {
   const selected = useSelectionStore((s) => s.selectedNodeId)
   const setSel = useSelectionStore((s) => s.setSelected)
+  const { fitView } = useReactFlow()
+  const fittedRef = useRef(false)
 
   const initNodes = useMemo(() => {
     return diagram.nodes.map((n, i) => {
       const p = nodePosition(n, i)
-      const sel = n.id === selected
       return {
         id: n.id,
         type: 'schema',
         position: p,
         data: { label: nodeLabel(n) },
-        style: {
-          borderRadius: 4,
-          border: sel ? '1px solid #f97316' : '1px solid rgba(34, 211, 238, 0.35)',
-          background: sel ? 'rgba(249, 115, 22, 0.12)' : 'rgba(15, 20, 28, 0.92)',
-          color: '#e2e8f0',
-          fontSize: 11,
-          fontWeight: 600,
-          fontFamily: 'JetBrains Mono, monospace',
-          boxShadow: sel
-            ? '0 0 16px rgba(249, 115, 22, 0.25)'
-            : '0 0 8px rgba(34, 211, 238, 0.08)',
-        },
+        style: nodeStyle(false),
       } satisfies Node
     })
-  }, [diagram.nodes, selected])
+  }, [diagram.nodes])
 
   const initEdges = useMemo(() => {
     const ids = new Set(diagram.nodes.map((n) => n.id))
@@ -83,8 +89,8 @@ function GraphViewInner({ diagram }: Props) {
             source: e.source,
             target: e.target,
             label: e.label ?? undefined,
-            style: { stroke: 'rgba(34, 211, 238, 0.45)', strokeWidth: 1.5 },
-            labelStyle: { fill: '#94a3b8', fontSize: 10 },
+            style: { stroke: 'rgba(255, 122, 89, 0.4)', strokeWidth: 1.5 },
+            labelStyle: { fill: '#b0a8ac', fontSize: 10 },
           }) satisfies Edge,
       )
   }, [diagram.nodes, diagram.edges])
@@ -95,7 +101,26 @@ function GraphViewInner({ diagram }: Props) {
   useEffect(() => {
     setNodes(initNodes)
     setEdges(initEdges)
-  }, [initNodes, initEdges, setNodes, setEdges])
+    fittedRef.current = false
+  }, [diagram, initNodes, initEdges, setNodes, setEdges])
+
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        style: nodeStyle(n.id === selected),
+      })),
+    )
+  }, [selected, setNodes])
+
+  useEffect(() => {
+    if (fittedRef.current || !diagram.nodes.length) return
+    fittedRef.current = true
+    const t = requestAnimationFrame(() => {
+      fitView({ padding: 0.12, duration: 200 })
+    })
+    return () => cancelAnimationFrame(t)
+  }, [diagram, fitView])
 
   const onNodeClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
@@ -113,14 +138,13 @@ function GraphViewInner({ diagram }: Props) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick}
-        fitView
         proOptions={{ hideAttribution: true }}
       >
-        <Background variant={BackgroundVariant.Lines} gap={20} color="rgba(34, 211, 238, 0.06)" />
+        <Background variant={BackgroundVariant.Dots} gap={24} color="rgba(255, 122, 89, 0.05)" />
         <MiniMap
-          nodeColor={() => '#22d3ee'}
-          maskColor="rgba(5, 6, 8, 0.8)"
-          style={{ background: '#0a0d12' }}
+          nodeColor={() => '#ff7a59'}
+          maskColor="rgba(7, 7, 8, 0.82)"
+          style={{ background: '#0b0b0d' }}
         />
         <Controls />
       </ReactFlow>

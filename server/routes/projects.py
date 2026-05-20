@@ -15,6 +15,7 @@ from server.folder_access import get_accessible_folder, validate_parent_folder
 from server.project_access import get_accessible_project, list_accessible_projects
 from server.schemas import ProjectFolderMove, ProjectOut, UploadResponse
 from server import storage
+from server.routes.parse import enqueue_parse
 from server.workspace import delete_project_files
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -32,6 +33,8 @@ def _to_out(session, rec: ProjectRecord) -> ProjectOut:
         last_domain=rec.last_domain,
         handdrawn=rec.handdrawn,
         has_diagram=storage.has_diagram(session, rec.id),
+        image_enhanced=rec.image_enhanced,
+        image_quality_score=rec.image_quality_score,
     )
 
 
@@ -76,7 +79,27 @@ async def upload_projects(
         )
         session.add(rec)
         session.commit()
+        from server.annotation_schemas import AnnotationsDocument
+        from server.annotation_service import save_document
+        from server.image_enhance import assess_and_maybe_enhance, assess_quality
+
+        score = assess_quality(raw)
+        raw, _, enhanced = assess_and_maybe_enhance(raw)
         storage.save_image(session, pid, raw, mime)
+        rec.image_quality_score = assess_quality(raw)
+        rec.image_enhanced = enhanced
+        session.add(rec)
+        session.commit()
+        save_document(
+            session,
+            pid,
+            AnnotationsDocument(
+                image_enhanced=enhanced,
+                image_quality_score=rec.image_quality_score,
+            ),
+        )
+        enqueue_parse(pid)
+        session.refresh(rec)
         created.append(_to_out(session, rec))
     return UploadResponse(projects=created)
 

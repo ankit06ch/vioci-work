@@ -11,10 +11,20 @@ import { useSelectionStore } from '../state/project'
 
 type Line = { kind: 'in' | 'out' | 'err' | 'sys'; text: string }
 
+export type WorkspaceTerminalAction = { type: 'store-dynamic-result'; tabId: string; text: string }
+
+export type WorkspaceTerminalResult = {
+  continueCopilot: boolean
+  sysLines?: string[]
+  dynamicTabId?: string
+}
+
 type Props = {
   projectId: string
   parseStatus?: string
   hasDiagram?: boolean
+  onWorkspaceMessage?: (message: string) => WorkspaceTerminalResult
+  onWorkspaceAction?: (action: WorkspaceTerminalAction) => void
 }
 
 const HELP = `Available commands:
@@ -28,7 +38,13 @@ const HELP = `Available commands:
 
 Natural language (without a command prefix) is sent to the AI copilot.`
 
-export function IntegrationTerminal({ projectId, parseStatus, hasDiagram }: Props) {
+export function IntegrationTerminal({
+  projectId,
+  parseStatus,
+  hasDiagram,
+  onWorkspaceMessage,
+  onWorkspaceAction,
+}: Props) {
   const selected = useSelectionStore((s) => s.selectedNodeId)
   const [lines, setLines] = useState<Line[]>([
     { kind: 'sys', text: 'VIOCI integration terminal v1.0 — type help for commands' },
@@ -122,15 +138,17 @@ export function IntegrationTerminal({ projectId, parseStatus, hasDiagram }: Prop
   )
 
   const runCopilot = useCallback(
-    async (message: string) => {
+    async (message: string, silent = false): Promise<string | null> => {
       if (!hasDiagram && !message.toLowerCase().includes('parse')) {
         append('sys', 'No diagram IR yet — run parse first, or type: parse')
+        return null
       }
       try {
         const reply = selected
           ? await chatNode(projectId, selected, message)
           : await chatDiagram(projectId, message)
-        append('out', reply)
+        if (!silent) append('out', reply)
+        return reply
       } catch (e) {
         const msg = formatApiError(e)
         if (msg.includes('503') || msg.toLowerCase().includes('google')) {
@@ -141,6 +159,7 @@ export function IntegrationTerminal({ projectId, parseStatus, hasDiagram }: Prop
         } else {
           append('err', msg)
         }
+        return null
       }
     },
     [append, hasDiagram, projectId, selected],
@@ -159,18 +178,36 @@ export function IntegrationTerminal({ projectId, parseStatus, hasDiagram }: Prop
       let message = raw
       if (raw.toLowerCase().startsWith('ask ')) {
         message = raw.slice(4).trim()
-        await runCopilot(message)
       } else {
         const handled = await runLocalCommand(raw)
-        if (!handled) {
-          await runCopilot(raw)
-        }
+        if (handled) return
       }
+
+      const prep = onWorkspaceMessage?.(message) ?? { continueCopilot: true }
+      if (prep.sysLines?.length) {
+        for (const line of prep.sysLines) append('sys', line)
+      }
+      if (!prep.continueCopilot) return
+
+      if (prep.dynamicTabId) {
+        const reply = await runCopilot(message, true)
+        if (reply) {
+          onWorkspaceAction?.({
+            type: 'store-dynamic-result',
+            tabId: prep.dynamicTabId,
+            text: reply,
+          })
+          append('out', 'Analysis complete — see the new tab for the full response.')
+        }
+        return
+      }
+
+      await runCopilot(message)
     } finally {
       setBusy(false)
       inputRef.current?.focus()
     }
-  }, [append, busy, input, runCopilot, runLocalCommand])
+  }, [append, busy, input, onWorkspaceAction, onWorkspaceMessage, runCopilot, runLocalCommand])
 
   return (
     <div className="integration-terminal">

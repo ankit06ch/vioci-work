@@ -78,10 +78,15 @@ def has_diagram(session: Session, project_id: str) -> bool:
 
 
 def delete_blobs(session: Session, project_id: str) -> None:
+    from server.models import ProjectAnnotations
+
     img = session.get(ProjectImage, project_id)
     if img:
         session.delete(img)
     diag = session.get(ProjectDiagram, project_id)
     if diag:
         session.delete(diag)
+    ann = session.get(ProjectAnnotations, project_id)
+    if ann:
+        session.delete(ann)
     session.commit()

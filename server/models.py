@@ -56,6 +56,16 @@ class ProjectRecord(SQLModel, table=True):
     last_provider: str | None = None
     last_domain: str | None = None
     handdrawn: bool = Field(default=False)
+    image_enhanced: bool = Field(default=False)
+    image_quality_score: float | None = None
+
+
+class ProjectAnnotations(SQLModel, table=True):
+    __tablename__ = "project_annotations"
+
+    project_id: str = Field(primary_key=True, foreign_key="project.id")
+    json_text: str
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class ProjectImage(SQLModel, table=True):
