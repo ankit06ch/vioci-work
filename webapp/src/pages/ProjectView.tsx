@@ -12,7 +12,8 @@ import {
 } from '../api/client'
 import type { Diagram, DiagramNode, PartAnnotation, ProjectMeta, WsEvent } from '../api/types'
 import { AnnotationPanel } from '../components/AnnotationPanel'
-import { ClosableTabBar } from '../components/ClosableTabBar'
+import { WorkspaceDock, type DockTabMeta } from '../components/workspace/WorkspaceDock'
+import { useWorkspaceDock } from '../hooks/useWorkspaceDock'
 import {
   IntegrationTerminal,
   type WorkspaceTerminalAction,
@@ -28,6 +29,9 @@ import { SimulatePanel } from '../components/SimulatePanel'
 import { SubsystemComponentList } from '../components/SubsystemComponentList'
 import { annotationsMissingMass, missionReadinessHint } from '../lib/annotations'
 import { detectTerminalIntent } from '../lib/terminalIntents'
+import type { PendingQuestion, SatelliteProfile } from '../lib/satelliteProfile'
+import { WORKSPACE_TAB_CATALOG, WORKSPACE_TAB_LABELS } from '../lib/workspaceTabs'
+import { SatelliteProfilePanel } from '../components/SatelliteProfilePanel'
 import { SUBSYSTEMS, type Subsystem } from '../lib/subsystems'
 import { useSelectionStore } from '../state/project'
 
@@ -38,18 +42,7 @@ type ContentTab = {
   kind: 'view' | 'tool' | 'dynamic'
 }
 
-const VIEW_TABS: ContentTab[] = [
-  { id: 'diagram', label: 'Diagram overlay', closable: false, kind: 'view' },
-  { id: 'graph', label: 'Dependency graph', closable: false, kind: 'view' },
-]
-
-const TOOL_TABS: ContentTab[] = [
-  { id: 'launch', label: 'Launch Compatibility', closable: true, kind: 'tool' },
-  { id: 'simulation', label: 'Simulation', closable: true, kind: 'tool' },
-  { id: 'annotations', label: 'Annotations', closable: true, kind: 'tool' },
-]
-
-const DEFAULT_OPEN = ['diagram', 'annotations', 'launch', 'simulation']
+const DEFAULT_OPEN = ['diagram']
 
 export function ProjectView() {
   const { projectId = '' } = useParams()
@@ -65,14 +58,17 @@ export function ProjectView() {
 
   const [activeSubsystem, setActiveSubsystem] = useState<Subsystem>('Propulsion')
   const [openTabIds, setOpenTabIds] = useState<string[]>(DEFAULT_OPEN)
-  const [activeTabId, setActiveTabId] = useState('diagram')
   const [dynamicTabs, setDynamicTabs] = useState<ContentTab[]>([])
   const [dynamicContent, setDynamicContent] = useState<Record<string, string>>({})
   const [annotations, setAnnotations] = useState<PartAnnotation[]>([])
+  const [satelliteProfile, setSatelliteProfile] = useState<SatelliteProfile>({})
+  const [profilePending, setProfilePending] = useState<PendingQuestion[]>([])
 
   const setSel = useSelectionStore((s) => s.setSelected)
   const setStoreDiagram = useSelectionStore((s) => s.setDiagram)
   const selectedId = useSelectionStore((s) => s.selectedNodeId)
+
+  const dock = useWorkspaceDock(projectId, openTabIds)
 
   useEffect(() => {
     setSel(search.get('node') || null)
@@ -145,7 +141,6 @@ export function ProjectView() {
     setDiagram(null)
     setEvents([])
     setOpenTabIds(DEFAULT_OPEN)
-    setActiveTabId('diagram')
     setDynamicTabs([])
     setDynamicContent({})
     setAnnotations([])
@@ -205,35 +200,46 @@ export function ProjectView() {
     }
   }, [projectId, pageReady, pageError, refreshDiagram, refreshMeta])
 
-  /** Diagram + Dependency graph are always visible; tool/dynamic tabs respect open/close. */
-  const visibleTabs = useMemo(() => {
-    const toolOpen = TOOL_TABS.filter((t) => openTabIds.includes(t.id))
-    const dynamicOpen = dynamicTabs.filter((t) => openTabIds.includes(t.id))
-    return [...VIEW_TABS, ...toolOpen, ...dynamicOpen]
-  }, [openTabIds, dynamicTabs])
-
-  const openTab = useCallback((tabId: string) => {
-    setOpenTabIds((ids) => (ids.includes(tabId) ? ids : [...ids, tabId]))
-    setActiveTabId(tabId)
-  }, [])
-
-  const closeTab = useCallback((tabId: string) => {
-    if (VIEW_TABS.some((t) => t.id === tabId)) return
-    setOpenTabIds((ids) => {
-      const next = ids.filter((id) => id !== tabId)
-      if (activeTabId === tabId) {
-        setActiveTabId('diagram')
-      }
-      return next
-    })
-    if (tabId.startsWith('dynamic-')) {
-      setDynamicTabs((t) => t.filter((x) => x.id !== tabId))
-      setDynamicContent((c) => {
-        const { [tabId]: _, ...rest } = c
-        return rest
-      })
+  const tabMeta = useMemo(() => {
+    const meta: Record<string, DockTabMeta> = {}
+    for (const t of WORKSPACE_TAB_CATALOG) {
+      meta[t.id] = { id: t.id, label: t.label, closable: true }
     }
-  }, [activeTabId])
+    for (const t of dynamicTabs) {
+      meta[t.id] = { id: t.id, label: t.label, closable: true }
+    }
+    meta.terminal = { id: 'terminal', label: 'Terminal', closable: false }
+    return meta
+  }, [dynamicTabs])
+
+  const openTab = useCallback(
+    (tabId: string, label?: string, leafId?: string): string => {
+      if (tabId !== 'terminal') {
+        setOpenTabIds((ids) => (ids.includes(tabId) ? ids : [...ids, tabId]))
+      }
+      return dock.openTabWithMessage(tabId, {
+        leafId,
+        label: label ?? WORKSPACE_TAB_LABELS[tabId] ?? tabId,
+      })
+    },
+    [dock],
+  )
+
+  const closeTab = useCallback(
+    (tabId: string) => {
+      if (tabId === 'terminal') return
+      dock.closeTab(tabId)
+      setOpenTabIds((ids) => ids.filter((id) => id !== tabId))
+      if (tabId.startsWith('dynamic-')) {
+        setDynamicTabs((t) => t.filter((x) => x.id !== tabId))
+        setDynamicContent((c) => {
+          const { [tabId]: _, ...rest } = c
+          return rest
+        })
+      }
+    },
+    [dock],
+  )
 
   const selectedNode: DiagramNode | null = useMemo(() => {
     if (!diagram || !selectedId) return null
@@ -253,61 +259,64 @@ export function ProjectView() {
           kind: 'dynamic',
         }
         setDynamicTabs((t) => [...t, tab])
-        openTab(tabId)
-        return { continueCopilot: true, dynamicTabId: tabId }
+        const placement = openTab(tabId, intent.label)
+        return { continueCopilot: true, dynamicTabId: tabId, sysLines: [placement] }
+      }
+
+      if (intent.type === 'diagram') {
+        return { continueCopilot: false, sysLines: [openTab('diagram')] }
+      }
+      if (intent.type === 'graph') {
+        return { continueCopilot: false, sysLines: [openTab('graph')] }
+      }
+      if (intent.type === 'mission') {
+        return { continueCopilot: false, sysLines: [openTab('mission')] }
+      }
+      if (intent.type === 'inspector') {
+        const line = openTab('inspector')
+        const ctx = selectedId
+          ? `Focused on component ${selectedId} — attach CSV or review telemetry schema in that pane.`
+          : 'Select a component on the diagram for node-level telemetry schema.'
+        return { continueCopilot: false, sysLines: [line, ctx] }
       }
 
       if (intent.type === 'annotations') {
-        openTab('annotations')
         return {
           continueCopilot: false,
           sysLines: [
-            'Annotations tab opened — review auto-detected parts, draw vectors, and enter mass/size.',
+            openTab('annotations'),
+            'Review auto-detected parts, draw vectors, and enter mass/size.',
           ],
         }
       }
 
       if (intent.type === 'launch') {
-        openTab('launch')
         const missing = annotationsMissingMass(annotations)
         const hint = missionReadinessHint(annotations)
         if (missing.length && hint) {
-          openTab('annotations')
           return {
             continueCopilot: false,
-            sysLines: [
-              'Launch Compatibility tab opened.',
-              hint,
-              `Parts needing mass: ${missing.map((m) => m.name).join(', ')}`,
-            ],
+            sysLines: [openTab('launch'), openTab('annotations'), hint],
           }
         }
-        return {
-          continueCopilot: true,
-          sysLines: ['Launch Compatibility tab opened.'],
-        }
+        return { continueCopilot: true, sysLines: [openTab('launch')] }
       }
 
       if (intent.type === 'simulate') {
-        openTab('simulation')
         const missing = annotationsMissingMass(annotations)
         const hint = missionReadinessHint(annotations)
         if (missing.length && hint) {
-          openTab('annotations')
           return {
             continueCopilot: false,
-            sysLines: ['Simulation tab opened.', hint],
+            sysLines: [openTab('simulation'), openTab('annotations'), hint],
           }
         }
-        return {
-          continueCopilot: true,
-          sysLines: ['Simulation tab opened.'],
-        }
+        return { continueCopilot: true, sysLines: [openTab('simulation')] }
       }
 
       return { continueCopilot: true }
     },
-    [openTab, annotations],
+    [openTab, annotations, selectedId],
   )
 
   const handleWorkspaceAction = useCallback((action: WorkspaceTerminalAction) => {
@@ -323,7 +332,42 @@ export function ProjectView() {
         ? 'badge-warn'
         : ''
 
-  const renderContentTab = () => {
+  const renderContentTab = (activeTabId: string) => {
+    if (activeTabId === 'terminal') {
+      return (
+        <div className="mission-terminal-panel terminal-panel dock-terminal">
+          <div className="terminal-header">
+            <div className="terminal-dots">
+              <span />
+              <span />
+              <span />
+            </div>
+            <span className="terminal-title">vioci-integration — ai copilot</span>
+          </div>
+          <div className="terminal-body mission-terminal-body">
+          <IntegrationTerminal
+            projectId={projectId}
+            parseStatus={meta!.parse_status}
+            hasDiagram={!!diagram}
+            onWorkspaceMessage={handleWorkspaceMessage}
+            onWorkspaceAction={handleWorkspaceAction}
+            onOpenWorkspaceTab={(tabId) =>
+              openTab(tabId, WORKSPACE_TAB_LABELS[tabId] ?? tabId)
+            }
+          />
+          </div>
+        </div>
+      )
+    }
+
+    if (activeTabId === 'inspector') {
+      return (
+        <div className="mission-inspector-panel dock-inspector">
+          <NodeInspector projectId={projectId} node={selectedNode} />
+        </div>
+      )
+    }
+
     if (activeTabId === 'diagram') {
       if (diagram) {
         return (
@@ -400,6 +444,25 @@ export function ProjectView() {
       )
     }
 
+    if (activeTabId === 'mission') {
+      return (
+        <SatelliteProfilePanel
+          profile={satelliteProfile}
+          pendingQuestions={profilePending}
+          nodes={diagram?.nodes ?? []}
+          activeSubsystem={activeSubsystem}
+          onChange={(key, value) =>
+            setSatelliteProfile((p) => ({ ...p, [key]: value }))
+          }
+          onAnswerPending={(questionId, value) => {
+            setProfilePending((q) => q.filter((x) => x.id !== questionId))
+            const q = profilePending.find((x) => x.id === questionId)
+            if (q) setSatelliteProfile((p) => ({ ...p, [q.field]: value }))
+          }}
+        />
+      )
+    }
+
     if (activeTabId === 'annotations') {
       return (
         <AnnotationPanel
@@ -473,66 +536,41 @@ export function ProjectView() {
         {meta.parse_error ? <span className="error">{meta.parse_error}</span> : null}
       </header>
 
-      <div className="mission-workspace">
-        <section className="mission-workspace-main glass-panel">
-          <div className="panel-head">
-            <h3 className="panel-title">
-              <span className="panel-icon">◇</span> Mission Workspace
-            </h3>
-          </div>
-
-          <ClosableTabBar
-            className="workspace-content-tabs"
-            tabs={visibleTabs}
-            activeId={activeTabId}
-            onSelect={setActiveTabId}
-            onClose={closeTab}
-          />
-
-          {activeTabId === 'diagram' ? (
-            <div className="subsystem-tabs" role="tablist" aria-label="Subsystem">
-              {SUBSYSTEMS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  role="tab"
-                  aria-selected={activeSubsystem === s}
-                  className={`subsystem-tab ${activeSubsystem === s ? 'subsystem-tab-active' : ''}`}
-                  onClick={() => setActiveSubsystem(s)}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="workspace-tab-content">{renderContentTab()}</div>
-        </section>
-
-        <aside className="mission-workspace-rail glass-panel">
-          <div className="mission-terminal-panel terminal-panel">
-            <div className="terminal-header">
-              <div className="terminal-dots">
-                <span />
-                <span />
-                <span />
+      <div className="mission-workspace mission-workspace-dock">
+        <WorkspaceDock
+          layout={dock.layout}
+          tabMeta={tabMeta}
+          projectId={projectId}
+          onSelectTab={dock.selectTab}
+          onCloseTab={closeTab}
+          onMoveTab={dock.moveTab}
+          onAddTabToLeaf={(tabId, leafId) => {
+            setOpenTabIds((ids) => (ids.includes(tabId) ? ids : [...ids, tabId]))
+            dock.openTabWithMessage(tabId, {
+              leafId,
+              label: WORKSPACE_TAB_LABELS[tabId] ?? tabId,
+            })
+          }}
+          renderPane={renderContentTab}
+          renderLeafChrome={(_leafId, tabId) =>
+            tabId === 'diagram' ? (
+              <div className="subsystem-tabs" role="tablist" aria-label="Subsystem">
+                {SUBSYSTEMS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeSubsystem === s}
+                    className={`subsystem-tab ${activeSubsystem === s ? 'subsystem-tab-active' : ''}`}
+                    onClick={() => setActiveSubsystem(s)}
+                  >
+                    {s}
+                  </button>
+                ))}
               </div>
-              <span className="terminal-title">vioci-integration — ai copilot</span>
-            </div>
-            <div className="terminal-body mission-terminal-body">
-              <IntegrationTerminal
-                projectId={projectId}
-                parseStatus={meta.parse_status}
-                hasDiagram={!!diagram}
-                onWorkspaceMessage={handleWorkspaceMessage}
-                onWorkspaceAction={handleWorkspaceAction}
-              />
-            </div>
-          </div>
-          <div className="mission-inspector-panel">
-            <NodeInspector projectId={projectId} node={selectedNode} />
-          </div>
-        </aside>
+            ) : null
+          }
+        />
       </div>
     </div>
   )

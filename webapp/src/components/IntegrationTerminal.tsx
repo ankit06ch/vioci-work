@@ -8,6 +8,7 @@ import {
 } from '../api/client'
 import { fetchMe } from '../api/auth'
 import { useSelectionStore } from '../state/project'
+import { resolveOpenTabCommand } from '../lib/terminalIntents'
 
 type Line = { kind: 'in' | 'out' | 'err' | 'sys'; text: string }
 
@@ -25,6 +26,7 @@ type Props = {
   hasDiagram?: boolean
   onWorkspaceMessage?: (message: string) => WorkspaceTerminalResult
   onWorkspaceAction?: (action: WorkspaceTerminalAction) => void
+  onOpenWorkspaceTab?: (tabId: string) => string
 }
 
 const HELP = `Available commands:
@@ -34,9 +36,13 @@ const HELP = `Available commands:
   parse             Queue IR parse (Gemini)
   whoami            Current user & organization
   context           Show selected node id
+  open <tab>        Open workspace tab (diagram, graph, mission, annotations, inspector, launch, simulation)
   ask <message>     Engineering copilot (same as plain text)
 
-Natural language (without a command prefix) is sent to the AI copilot.`
+Natural language also opens tabs, e.g.:
+  "show satellite schema"  → Satellite schema pane
+  "component telemetry"    → Component inspector pane
+  "pull up annotations"    → Annotations pane`
 
 export function IntegrationTerminal({
   projectId,
@@ -44,6 +50,7 @@ export function IntegrationTerminal({
   hasDiagram,
   onWorkspaceMessage,
   onWorkspaceAction,
+  onOpenWorkspaceTab,
 }: Props) {
   const selected = useSelectionStore((s) => s.selectedNodeId)
   const [lines, setLines] = useState<Line[]>([
@@ -124,6 +131,19 @@ export function IntegrationTerminal({
         case 'context':
           append('out', selected ? `node_id: ${selected}` : 'no node selected (diagram-level context)')
           return true
+        case 'open': {
+          const name = rest.split(/\s+/)[0] ?? rest
+          const tabId = resolveOpenTabCommand(name)
+          if (!tabId || !onOpenWorkspaceTab) {
+            append(
+              'err',
+              'usage: open diagram|graph|mission|annotations|inspector|launch|simulation|terminal',
+            )
+            return true
+          }
+          append('sys', onOpenWorkspaceTab(tabId))
+          return true
+        }
         case 'ask':
           if (!rest) {
             append('err', 'usage: ask <your question>')
@@ -134,7 +154,7 @@ export function IntegrationTerminal({
           return false
       }
     },
-    [append, projectId, selected],
+    [append, onOpenWorkspaceTab, projectId, selected],
   )
 
   const runCopilot = useCallback(

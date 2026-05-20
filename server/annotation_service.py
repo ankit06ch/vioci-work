@@ -18,49 +18,79 @@ from server.annotation_schemas import (
 from server.models import ProjectAnnotations
 
 
+def _humanize_name(raw: str) -> str:
+    t = raw.strip().replace("_", " ").replace("-", " ")
+    if not t:
+        return "Component"
+    if t.isupper() and len(t) <= 6:
+        return t
+    return t[:1].upper() + t[1:]
+
+
 def _node_display_name(node: dict[str, Any]) -> str:
     props = node.get("properties") or {}
     disp = props.get("display_name")
     if isinstance(disp, str) and disp.strip():
-        return disp.strip()
+        return _humanize_name(disp)
     label = node.get("label")
     if isinstance(label, str) and label.strip():
-        return label.strip()
-    return str(node.get("kind") or "part")
+        return _humanize_name(label)
+    kind = node.get("kind")
+    if isinstance(kind, str) and kind.strip():
+        return _humanize_name(kind)
+    return "Component"
 
 
 def _bbox_from_node(node: dict[str, Any]) -> BBoxPx | None:
     geom = node.get("geometry") or {}
     bb = geom.get("bbox")
-    if not bb or not bb.get("w") or not bb.get("h"):
-        return None
-    return BBoxPx(
-        x=float(bb["x"]),
-        y=float(bb["y"]),
-        w=float(bb["w"]),
-        h=float(bb["h"]),
-    )
+    if bb and bb.get("w") and bb.get("h"):
+        return BBoxPx(
+            x=float(bb["x"]),
+            y=float(bb["y"]),
+            w=float(bb["w"]),
+            h=float(bb["h"]),
+        )
+    pl = geom.get("polyline_px")
+    if pl and len(pl) >= 2:
+        xs = [float(p[0]) for p in pl]
+        ys = [float(p[1]) for p in pl]
+        min_x, max_x = min(xs), max(xs)
+        min_y, max_y = min(ys), max(ys)
+        return BBoxPx(
+            x=min_x,
+            y=min_y,
+            w=max(16.0, max_x - min_x),
+            h=max(16.0, max_y - min_y),
+        )
+    ports = node.get("ports") or []
+    px = [float(p["position_px"][0]) for p in ports if p.get("position_px")]
+    py = [float(p["position_px"][1]) for p in ports if p.get("position_px")]
+    if px and py:
+        pad = 36.0
+        min_x, max_x = min(px), max(px)
+        min_y, max_y = min(py), max(py)
+        return BBoxPx(
+            x=min_x - pad,
+            y=min_y - pad,
+            w=max(24.0, max_x - min_x + 2 * pad),
+            h=max(24.0, max_y - min_y + 2 * pad),
+        )
+    return None
 
 
 def _auto_vectors_for_bbox(bbox: BBoxPx, name: str) -> list[AnnotationVector]:
+    """Outline the component (not the caption text box)."""
     x, y, w, h = bbox.x, bbox.y, bbox.w, bbox.h
-    vid = str(uuid.uuid4())
-    rect = AnnotationVector(
-        id=vid,
-        kind="rect",
-        points=[(x, y), (x + w, y), (x + w, y + h), (x, y + h)],
-        auto=True,
-        label=name,
-    )
-    cx, cy = x + w / 2, y + h / 2
-    arrow = AnnotationVector(
-        id=str(uuid.uuid4()),
-        kind="arrow",
-        points=[(cx, max(8.0, y - 24)), (cx, y)],
-        auto=True,
-        label=name,
-    )
-    return [rect, arrow]
+    return [
+        AnnotationVector(
+            id=str(uuid.uuid4()),
+            kind="rect",
+            points=[(x, y), (x + w, y), (x + w, y + h), (x, y + h)],
+            auto=True,
+            label=name,
+        ),
+    ]
 
 
 def seed_from_diagram(

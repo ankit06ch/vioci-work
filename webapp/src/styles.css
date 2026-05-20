@@ -747,6 +747,15 @@ a:hover {
   cursor: not-allowed;
 }
 
+.btn-icon {
+  padding: 0.45rem 0.55rem;
+  line-height: 0;
+}
+
+.btn-icon svg {
+  display: block;
+}
+
 /* Tabs */
 .tabs {
   display: flex;
@@ -861,6 +870,242 @@ textarea.input-msg {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.mission-workspace-dock {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.workspace-dock {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dock-split-group {
+  flex: 1;
+  min-height: 0;
+}
+
+.dock-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dock-resize-handle {
+  flex: 0 0 6px;
+  margin: 0 1px;
+  background: var(--border);
+  border-radius: 3px;
+  transition: background 0.15s ease;
+}
+
+.dock-resize-handle:hover,
+.dock-resize-handle[data-resize-handle-active] {
+  background: var(--accent-orange);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.dock-resize-handle[data-panel-group-direction='vertical'] {
+  width: auto;
+  height: 6px;
+  margin: 1px 0;
+  cursor: row-resize;
+}
+
+.dock-resize-handle[data-panel-group-direction='horizontal'] {
+  cursor: col-resize;
+}
+
+.dock-leaf {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.dock-leaf-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.dock-leaf-empty-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dock-leaf-empty-hint {
+  margin: 0;
+  max-width: 360px;
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+.dock-leaf-empty-hint strong {
+  color: var(--accent-orange);
+}
+
+.dock-leaf-tabs {
+  flex-shrink: 0;
+}
+
+.dock-leaf-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.dock-terminal,
+.dock-inspector {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.closable-tab-wrap[draggable='true'] {
+  cursor: grab;
+}
+
+.closable-tab-wrap[draggable='true']:active {
+  cursor: grabbing;
+}
+
+.closable-tab-wrap--dragging {
+  opacity: 0.45;
+}
+
+.closable-tab-grip {
+  opacity: 0.45;
+  margin-right: 0.3rem;
+  font-size: 0.62rem;
+  user-select: none;
+}
+
+.closable-tab-label {
+  user-select: none;
+}
+
+.closable-tab-draggable {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dock-rail-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.72rem;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  flex-shrink: 0;
+}
+
+.dock-rail-tab:active {
+  cursor: grabbing;
+}
+
+.dock-rail-tab--dragging {
+  opacity: 0.45;
+}
+
+.dock-rail-tab-grip {
+  opacity: 0.5;
+  font-size: 0.65rem;
+}
+
+.dock-leaf--drop-ready {
+  outline: 1px dashed rgba(255, 122, 89, 0.2);
+}
+
+.dock-insert {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dock-insert-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0.25rem 0.55rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-orange);
+  background: rgba(12, 10, 9, 0.92);
+  border: 1px solid rgba(255, 122, 89, 0.55);
+  border-radius: var(--radius);
+  box-shadow: 0 0 12px var(--accent-glow);
+  z-index: 2;
+}
+
+.dock-insert--left {
+  background: linear-gradient(90deg, rgba(255, 122, 89, 0.35), transparent 32%);
+  box-shadow: inset 5px 0 0 var(--accent-orange);
+}
+
+.dock-insert--right {
+  background: linear-gradient(270deg, rgba(255, 122, 89, 0.35), transparent 32%);
+  box-shadow: inset -5px 0 0 var(--accent-orange);
+}
+
+.dock-insert--top {
+  background: linear-gradient(180deg, rgba(255, 122, 89, 0.35), transparent 32%);
+  box-shadow: inset 0 5px 0 var(--accent-orange);
+}
+
+.dock-insert--bottom {
+  background: linear-gradient(0deg, rgba(255, 122, 89, 0.35), transparent 32%);
+  box-shadow: inset 0 -5px 0 var(--accent-orange);
+}
+
+.dock-insert--center {
+  background: rgba(255, 122, 89, 0.14);
+  outline: 2px solid rgba(255, 122, 89, 0.65);
+  outline-offset: -6px;
+}
+
+.dock-insert--fallback.dock-insert--center {
+  outline-style: dashed;
 }
 
 .mission-workspace-main {
@@ -1018,6 +1263,79 @@ textarea.input-msg {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.closable-tab-add {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.closable-tab-add-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.38rem 0.65rem;
+  font-size: 1rem;
+  line-height: 1;
+  font-weight: 600;
+  border-radius: 3px;
+}
+
+.closable-tab-add-btn:hover {
+  color: var(--accent-orange);
+  background: var(--accent-dim);
+}
+
+.closable-tab-add-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  background: rgba(12, 10, 9, 0.98);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
+
+.closable-tab-add-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0.45rem 0.55rem;
+  border-radius: 3px;
+  text-align: left;
+}
+
+.closable-tab-add-item:hover {
+  background: var(--accent-dim);
+  color: var(--accent-orange);
+}
+
+.closable-tab-add-item-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.closable-tab-add-item-hint {
+  font-size: 0.65rem;
+  line-height: 1.35;
+}
+
 .workspace-tab-content {
   flex: 1;
   min-height: 0;
@@ -1080,12 +1398,12 @@ textarea.input-msg {
   display: none;
 }
 
-.annotation-panel--fullscreen .annotation-canvas {
+.annotation-panel--fullscreen .schematic-canvas-wrap {
   border-radius: var(--radius-panel);
   border: 1px solid var(--border);
 }
 
-.annotation-panel--fullscreen .workspace-canvas {
+.annotation-panel--fullscreen .schematic-canvas-viewport {
   min-height: 0;
 }
 
@@ -1120,19 +1438,111 @@ textarea.input-msg {
   overflow: hidden;
 }
 
-.annotation-canvas {
+/* Pan/zoom schematic canvas (annotations + overlays) */
+.schematic-canvas-wrap {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   height: 100%;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 100%, rgba(140, 65, 28, 0.14), transparent),
+    var(--bg-void);
+  overflow: hidden;
 }
 
-.annotation-svg {
+.schematic-canvas-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.5rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.schematic-canvas-zoom-label {
+  font-size: 0.68rem;
+  min-width: 2.5rem;
+}
+
+.schematic-canvas-hint {
+  font-size: 0.62rem;
+  margin-left: 0.25rem;
+}
+
+.schematic-canvas-viewport {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+}
+
+.schematic-canvas-viewport:active {
+  cursor: grabbing;
+}
+
+.schematic-canvas-stage {
   position: absolute;
-  left: 0;
   top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.schematic-canvas-img {
+  display: block;
   width: 100%;
   height: 100%;
-  pointer-events: auto;
-  z-index: 3;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.schematic-canvas-svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.schematic-canvas-svg [style*='pointer-events'] {
+  pointer-events: all;
+}
+
+.schematic-canvas-svg .annotation-part-hit {
+  pointer-events: all;
+  cursor: pointer;
+}
+
+.schematic-canvas-svg .annotation-name-fo {
+  pointer-events: all;
+  overflow: visible;
+}
+
+.annotation-part-hit {
+  fill: rgba(255, 122, 89, 0.05);
+  stroke: transparent;
+}
+
+.annotation-part-hit--selected {
+  fill: rgba(255, 122, 89, 0.12);
+  stroke: rgba(255, 122, 89, 0.55);
+  stroke-width: 1.5;
+}
+
+.annotation-name-on-canvas {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: var(--radius);
+  background: rgba(12, 10, 9, 0.92);
+  border: 1px solid var(--accent);
+  color: var(--text-primary);
 }
 
 .annotation-sidebar {

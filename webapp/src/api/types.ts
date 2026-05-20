@@ -29,7 +29,7 @@ export interface BBoxPx {
   h: number
 }
 
-export type AnnotationVectorKind = 'line' | 'polyline' | 'rect' | 'arrow'
+export type AnnotationVectorKind = 'line' | 'polyline' | 'rect' | 'arrow' | 'polygon'
 
 export interface AnnotationVector {
   id: string

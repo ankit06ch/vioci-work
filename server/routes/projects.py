@@ -83,6 +83,7 @@ async def upload_projects(
         from server.annotation_service import save_document
         from server.image_enhance import assess_and_maybe_enhance, assess_quality
 
+        storage.backup_original_image(pid, raw)
         score = assess_quality(raw)
         raw, _, enhanced = assess_and_maybe_enhance(raw)
         storage.save_image(session, pid, raw, mime)

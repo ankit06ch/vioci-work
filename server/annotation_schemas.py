@@ -16,7 +16,7 @@ class BBoxPx(BaseModel):
 
 class AnnotationVector(BaseModel):
     id: str
-    kind: Literal["line", "polyline", "rect", "arrow"] = "line"
+    kind: Literal["line", "polyline", "rect", "arrow", "polygon"] = "line"
     points: list[tuple[float, float]] = Field(default_factory=list)
     auto: bool = False
     label: str | None = None

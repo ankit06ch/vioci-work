@@ -55,6 +55,10 @@ def image_path(project_id: str) -> Path:
     return project_dir(project_id) / "source.png"
 
 
+def original_image_path(project_id: str) -> Path:
+    return project_dir(project_id) / "source.original.png"
+
+
 def diagram_path(project_id: str) -> Path:
     return project_dir(project_id) / "diagram.annotated.json"
 
@@ -91,6 +95,11 @@ def read_diagram_dict(project_id: str) -> dict[str, Any] | None:
 def after_image_write(project_id: str) -> None:
     if _use_cloud_files():
         cloud_files.upload_file(project_id, image_path(project_id))
+
+
+def after_original_image_write(project_id: str) -> None:
+    if _use_cloud_files():
+        cloud_files.upload_file(project_id, original_image_path(project_id))
 
 
 def after_sheet_write(project_id: str, sheet_path: Path) -> None:

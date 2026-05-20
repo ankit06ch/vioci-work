@@ -242,3 +242,10 @@ export async function enhanceProjectImage(
   const { data } = await http.post(`/api/projects/${projectId}/image/enhance`)
   return data
 }
+
+export async function restoreProjectImage(
+  projectId: string,
+): Promise<{ enhanced: boolean; quality_score: number; message: string }> {
+  const { data } = await http.post(`/api/projects/${projectId}/image/restore`)
+  return data
+}

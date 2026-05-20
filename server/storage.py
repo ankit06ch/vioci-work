@@ -4,13 +4,78 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from sqlmodel import Session
 
 from schemagraph.ir.schema import Diagram
 from server.models import ProjectDiagram, ProjectImage
-from server.workspace import diagram_path, image_path, read_diagram, write_diagram
+from server.workspace import (
+    WORKSPACE_ROOT,
+    diagram_path,
+    image_path,
+    original_image_path,
+    read_diagram,
+    write_diagram,
+)
+
+
+def backup_original_image(project_id: str, data: bytes) -> None:
+    """Keep first-upload bytes so users can restore after a bad enhance."""
+    p = original_image_path(project_id)
+    if p.exists():
+        return
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_bytes(data)
+    from server.workspace import after_original_image_write
+
+    after_original_image_write(project_id)
+
+
+def get_original_image_bytes(project_id: str) -> bytes | None:
+    p = original_image_path(project_id)
+    if p.exists():
+        return p.read_bytes()
+    return None
+
+
+def _image_has_content(png_bytes: bytes) -> bool:
+    import io
+
+    import numpy as np
+    from PIL import Image
+
+    arr = np.array(Image.open(io.BytesIO(png_bytes)).convert("RGB"))
+    return float(arr.std()) >= 35
+
+
+def _find_restorable_bytes(project_id: str) -> bytes | None:
+    for candidate in (
+        get_original_image_bytes(project_id),
+        _read_if_content(image_path(project_id)),
+        _read_if_content(WORKSPACE_ROOT / project_id / "source.png"),
+    ):
+        if candidate is not None:
+            return candidate
+    return None
+
+
+def _read_if_content(path: Path) -> bytes | None:
+    if not path.is_file():
+        return None
+    raw = path.read_bytes()
+    return raw if _image_has_content(raw) else None
+
+
+def restore_original_image(session: Session, project_id: str) -> bool:
+    """Restore schematic from backup, cache, or repo workspace copy."""
+    raw = _find_restorable_bytes(project_id)
+    if raw is None:
+        return False
+    backup_original_image(project_id, raw)
+    save_image(session, project_id, raw, "image/png")
+    return True
 
 
 def save_image(session: Session, project_id: str, data: bytes, mime_type: str = "image/png") -> None:
