@@ -50,7 +50,12 @@ def _run_parse(project_id: str, _body: ParseRequest) -> None:
             {"type": "error", "phase": "error", "message": msg, "progress": 0.0},
         )
 
-    img_path = str(workspace.image_path(project_id))
+    try:
+        with Session(get_engine()) as session:
+            img_path = str(storage.ensure_source_image_file(session, project_id))
+    except FileNotFoundError as e:
+        _fail(str(e))
+        return
 
     try:
         hand = infer_handdrawn(img_path)

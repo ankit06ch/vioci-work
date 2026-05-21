@@ -100,7 +100,7 @@ def sync_project_from_cloud(project_dir: Path, project_id: str) -> None:
     project_dir.mkdir(parents=True, exist_ok=True)
     for rel in ("source.png", "diagram.annotated.json"):
         dest = project_dir / rel
-        if not dest.exists():
+        if not dest.is_file() or dest.stat().st_size == 0:
             download_file(project_id, rel, dest)
     try:
         sheet_entries = _client().storage.from_(_bucket()).list(f"{project_id}/sheets")

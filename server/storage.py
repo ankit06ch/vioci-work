@@ -108,6 +108,33 @@ def get_image(session: Session, project_id: str) -> tuple[bytes, str] | None:
     return None
 
 
+def ensure_source_image_file(session: Session, project_id: str) -> Path:
+    """Write source.png to the workspace cache when only Postgres/Storage has the bytes.
+
+    On Render (and other ephemeral hosts) ``/root/.cache/vioci/...`` is empty after
+    restarts while ``project_images`` still holds the upload. Parse/CV require a path.
+    """
+    p = image_path(project_id)
+    if _read_if_content(p) is not None:
+        return p
+
+    row = session.get(ProjectImage, project_id)
+    if row and row.data:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(row.data)
+        from server.workspace import after_image_write
+
+        after_image_write(project_id)
+        return p
+
+    if p.is_file() and p.stat().st_size > 0:
+        return p
+
+    raise FileNotFoundError(
+        f"Source image missing for project {project_id}. Re-upload the schematic."
+    )
+
+
 def save_diagram_json(session: Session, project_id: str, payload: dict[str, Any]) -> None:
     text = json.dumps(payload, indent=2)
     row = session.get(ProjectDiagram, project_id)
