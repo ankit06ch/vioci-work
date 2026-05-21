@@ -15,7 +15,7 @@ export function Upload() {
       setErr(null)
       try {
         await uploadProjects(Array.from(files))
-        nav('/')
+        nav('/workspace')
       } catch (e) {
         setErr(e instanceof Error ? e.message : String(e))
       } finally {

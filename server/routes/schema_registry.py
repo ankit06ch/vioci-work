@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+import json
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import PlainTextResponse, Response
 
 from server.auth import get_current_user
@@ -9,11 +11,14 @@ from server.models import User
 from server.project_access import get_accessible_project
 from server.schema_registry import (
     REGISTRY_TABLES,
+    import_launch_readiness_document,
     list_registry_files,
     load_schema_registry,
     query_registry,
     rebuild_schema_registry,
     registry_csv_bytes,
+    registry_explorer_file_bytes,
+    EXPLORER_SCHEMA_FILES,
 )
 from server.schema_registry_sql import (
     append_row,
@@ -97,6 +102,27 @@ def refresh_schema_registry(
         return rebuild_schema_registry(session, project_id)
     except ValueError as e:
         raise HTTPException(404, str(e)) from e
+
+
+@router.get("/{project_id}/schema-registry/explorer-file/{file_key}", response_class=PlainTextResponse)
+def get_explorer_schema_file(
+    project_id: str,
+    file_key: str,
+    session: SessionDep,
+    user: User = Depends(get_current_user),
+):
+    """Raw JSON/CSV for schematic explorer preview (manifest, launch schema, etc.)."""
+    get_accessible_project(session, user, project_id)
+    if file_key not in EXPLORER_SCHEMA_FILES:
+        raise HTTPException(400, "unknown explorer file key")
+    hit = registry_explorer_file_bytes(project_id, file_key)
+    if hit is None:
+        raise HTTPException(404, "file not found on disk")
+    data, media_type = hit
+    return PlainTextResponse(
+        data.decode("utf-8"),
+        media_type=media_type,
+    )
 
 
 @router.get("/{project_id}/schema-registry/csv/{table}")
@@ -210,3 +236,71 @@ def execute_registry_sql(
         raise HTTPException(404, str(e)) from e
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+
+
+@router.get("/launch-readiness/schema")
+def get_launch_readiness_schema(user: User = Depends(get_current_user)):
+    """JSON Schema for satellite launch readiness (mission + components + check catalog)."""
+    from schemagraph.launch_compat.schema.validate import load_schema
+
+    return load_schema()
+
+
+@router.get("/{project_id}/launch-readiness")
+def get_project_launch_readiness(
+    project_id: str,
+    session: SessionDep,
+    user: User = Depends(get_current_user),
+):
+    get_accessible_project(session, user, project_id)
+    from schemagraph.launch_compat.schema.builder import load_launch_readiness
+
+    doc = load_launch_readiness(project_id)
+    if not doc:
+        raise HTTPException(404, "launch readiness not created yet — parse schematic or upload")
+    return doc
+
+
+@router.post("/{project_id}/launch-readiness/import")
+async def import_launch_readiness(
+    project_id: str,
+    session: SessionDep,
+    user: User = Depends(get_current_user),
+    file: UploadFile = File(...),  # noqa: B008
+):
+    """Import SatelliteLaunchReadiness JSON (e.g. vioci_leo_observation_sat.json) into the project."""
+    get_accessible_project(session, user, project_id)
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(400, "empty file")
+    try:
+        doc = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise HTTPException(400, "file must be UTF-8 JSON") from e
+    if not isinstance(doc, dict):
+        raise HTTPException(400, "JSON root must be an object")
+    try:
+        saved = import_launch_readiness_document(session, project_id, doc)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+    return {
+        "ok": True,
+        "check_readiness": saved.get("check_readiness"),
+        "manifest": "schema/launch/launch_readiness.json",
+    }
+
+
+@router.post("/{project_id}/launch-readiness/rebuild")
+def rebuild_launch_readiness(
+    project_id: str,
+    session: SessionDep,
+    user: User = Depends(get_current_user),
+):
+    """Regenerate launch CSVs and manifest from current diagram + annotations."""
+    get_accessible_project(session, user, project_id)
+    try:
+        doc = rebuild_schema_registry(session, project_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+    lr = doc.get("launch_readiness") or {}
+    return {"launch_readiness": lr, "check_readiness": lr.get("check_readiness")}

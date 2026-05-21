@@ -16,8 +16,11 @@ import type {
 } from './types'
 import { getStoredToken } from '../state/auth'
 
+/** Empty = same origin (Vite proxy locally, Vercel /api rewrite in prod). */
+export const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+
 export const http = axios.create({
-  baseURL: '',
+  baseURL: apiBaseUrl,
   headers: { 'Content-Type': 'application/json' },
   timeout: 60_000,
 })
@@ -131,6 +134,24 @@ export async function getDiagram(id: string): Promise<Diagram> {
   return data
 }
 
+export async function deleteDiagramNodes(projectId: string, nodeIds: string[]): Promise<Diagram> {
+  const { data } = await http.delete<Diagram>(`/api/projects/${projectId}/diagram/nodes`, {
+    data: { node_ids: nodeIds },
+  })
+  return data
+}
+
+export async function renameDiagramNode(
+  projectId: string,
+  nodeId: string,
+  label: string,
+): Promise<Diagram> {
+  const { data } = await http.patch<Diagram>(`/api/projects/${projectId}/diagram/nodes/${nodeId}`, {
+    label,
+  })
+  return data
+}
+
 export function imageUrl(projectId: string): string {
   return `/api/projects/${projectId}/image`
 }
@@ -139,11 +160,20 @@ export async function queueParse(projectId: string): Promise<void> {
   await http.post(`/api/projects/${projectId}/parse`, {})
 }
 
+function wsOrigin(): string {
+  if (apiBaseUrl) {
+    const u = new URL(apiBaseUrl)
+    const scheme = u.protocol === 'https:' ? 'wss' : 'ws'
+    return `${scheme}://${u.host}`
+  }
+  const scheme = window.location.protocol === 'https:' ? 'wss' : 'ws'
+  return `${scheme}://${window.location.host}`
+}
+
 export function openProjectEvents(projectId: string, onMessage: (e: WsEvent) => void): WebSocket {
-  const p = window.location.protocol === 'https:' ? 'wss' : 'ws'
   const token = getStoredToken()
   const q = token ? `?token=${encodeURIComponent(token)}` : ''
-  const ws = new WebSocket(`${p}://${window.location.host}/api/projects/${projectId}/events${q}`)
+  const ws = new WebSocket(`${wsOrigin()}/api/projects/${projectId}/events${q}`)
   ws.onmessage = (ev) => {
     try {
       onMessage(JSON.parse(ev.data as string) as WsEvent)
@@ -338,6 +368,20 @@ export function schemaRegistryCsvUrl(
   return `/api/projects/${projectId}/schema-registry/csv/${table}`
 }
 
+export function explorerSchemaFileUrl(projectId: string, fileKey: string): string {
+  return `/api/projects/${projectId}/schema-registry/explorer-file/${fileKey}`
+}
+
+export async function fetchExplorerSchemaFile(
+  projectId: string,
+  fileKey: string,
+): Promise<string> {
+  const { data } = await http.get<string>(explorerSchemaFileUrl(projectId, fileKey), {
+    responseType: 'text',
+  })
+  return data
+}
+
 export async function listLaunchVehicles(): Promise<LaunchVehicleMeta[]> {
   const { data } = await http.get<LaunchVehicleMeta[]>('/api/launch-vehicles')
   return data
@@ -368,6 +412,29 @@ export async function runLaunchTest(
     `/api/projects/${projectId}/launch-compat/tests/${testId}`,
     body,
   )
+  return data
+}
+
+export async function getLaunchReadiness(projectId: string): Promise<Record<string, unknown> | null> {
+  try {
+    const { data } = await http.get<Record<string, unknown>>(
+      `/api/projects/${projectId}/launch-readiness`,
+    )
+    return data
+  } catch {
+    return null
+  }
+}
+
+export async function importLaunchReadiness(
+  projectId: string,
+  file: File,
+): Promise<{ ok: boolean; check_readiness?: Record<string, unknown>; manifest: string }> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await http.post(`/api/projects/${projectId}/launch-readiness/import`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
   return data
 }
 

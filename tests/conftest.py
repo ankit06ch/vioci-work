@@ -3,8 +3,47 @@
 from __future__ import annotations
 
 import io
+import uuid
 
 import pytest
+from fastapi.testclient import TestClient
+
+from server import workspace
+from server.main import app
+from server.settings import reset_server_settings
+
+
+@pytest.fixture()
+def client(tmp_path, monkeypatch) -> TestClient:
+    monkeypatch.setenv("VIOCI_AUTH_DISABLED", "1")
+    monkeypatch.setenv("VIOCI_SQLITE_PATH", str(tmp_path / "idx.sqlite"))
+    monkeypatch.delenv("VIOCI_DATABASE_URL", raising=False)
+    monkeypatch.delenv("VIOCI_SUPABASE_URL", raising=False)
+    monkeypatch.delenv("VIOCI_SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    monkeypatch.setattr(workspace, "WORKSPACE_ROOT", tmp_path / "ws")
+    reset_server_settings()
+    import server.state as state
+
+    if state._engine is not None:
+        state._engine.dispose()
+    state._engine = None
+    import server.events as events
+
+    events._subscribers.clear()
+    with TestClient(app) as c:
+        c.get("/api/health")
+        c.post(
+            "/api/auth/signup",
+            json={
+                "email": f"test-{uuid.uuid4().hex[:8]}@vioci.local",
+                "password": "testpass123",
+                "full_name": "Test User",
+            },
+        )
+        yield c
+    if state._engine is not None:
+        state._engine.dispose()
+        state._engine = None
 
 
 @pytest.fixture

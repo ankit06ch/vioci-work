@@ -23,7 +23,7 @@ export function Login() {
   const [err, setErr] = useState<string | null>(null)
   const [emailTouched, setEmailTouched] = useState(false)
 
-  const next = search.get('next') || '/'
+  const next = search.get('next') || '/workspace'
   const emailInvalid = emailTouched && email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
   const submit = async (e: React.FormEvent) => {

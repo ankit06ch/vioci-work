@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { http } from './client'
+import { apiBaseUrl, http } from './client'
 
 export interface UserProfile {
   id: string
@@ -18,7 +18,7 @@ export interface AuthResponse {
 }
 
 const publicHttp = axios.create({
-  baseURL: '',
+  baseURL: apiBaseUrl,
   headers: { 'Content-Type': 'application/json' },
   timeout: 90_000,
 })

@@ -41,7 +41,8 @@ export function ProtectedRoute({ children }: Props) {
   }, [token, user, setUser, clearSession])
 
   if (!token) {
-    return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />
+    const next = `${location.pathname}${location.search}`
+    return <Navigate to={`/login?next=${encodeURIComponent(next)}`} replace />
   }
 
   if (checking) {

@@ -1,10 +1,12 @@
-# Launch Physics Engine
+# AEGIS-LV Mission Assurance Engine
 
 Rigorous **analytical** launch integration for Vioci Schematic Explorer. This is an engineering analysis tool — not a certification artifact. Flight release still requires measured mass properties and qualification testing.
 
 ## Engine version
 
-`launch_physics_v2` — traceable outputs with `engine_version` and `vehicle_data_rev` on every report.
+`AEGIS-LV` — the user-facing mission assurance engine for launch compatibility.
+
+`launch_physics_v2` — the traceable analytical core emitted as `engine_version`, with `vehicle_data_rev` on every report.
 
 ## Data sources
 
@@ -13,6 +15,7 @@ Rigorous **analytical** launch integration for Vioci Schematic Explorer. This is
 | Bundled JSON (`schemagraph/launch_compat/vehicles/*.json`) | MPE quasi-static tables, PSD, SRS, modal floors, CG limits (from public Payload User Guides) |
 | Mission profile | Mass, orbit, CG, MOI, vent geometry, modal frequencies |
 | Part annotations | Per-component mass, L×W×H, material, power — required for structural FEA |
+| **Launch readiness schema** | `schemagraph/launch_compat/schema/satellite_launch_schema.json` — mission + components validated on parse; exported to CSV under `schema/launch/` |
 | Uploaded load files | CSV/JSON PSD or SRS overrides mission-specific environments |
 
 **Merge policy:** uploaded curves override bundled defaults per kind (`psd`, `srs`, `quasi_static`).
@@ -46,6 +49,24 @@ Rigorous **analytical** launch integration for Vioci Schematic Explorer. This is
 - **GO** otherwise
 
 `blocked` means required inputs are missing — never scored as pass.
+
+## Launch readiness schema (CSV on upload)
+
+On schematic upload or parse, Vioci builds a **SatelliteLaunchReadiness** document (`schema/launch/launch_readiness.json`) and three CSVs:
+
+| File | Contents |
+|------|----------|
+| `launch_mission.csv` | One row: mass, orbit, CG/MOI, venting, fairing, vehicle prefs |
+| `launch_components.csv` | One row per annotated part: mass, L×W×H, material, bbox |
+| `launch_check_catalog.csv` | Field → physics test mapping (which inputs unblock which checks) |
+
+Schema: `schemagraph/launch_compat/schema/satellite_launch_schema.json`. Sample bus: `schema/samples/landsat_telemetry_bus.json`.
+
+`check_readiness` on the manifest lists `tests_unblocked` vs missing mission/component fields so the Launch tab can show BLOCKED gates before running the suite.
+
+- `GET /api/projects/launch-readiness/schema` — JSON Schema
+- `GET /api/projects/{id}/launch-readiness` — project manifest
+- `POST /api/projects/{id}/launch-readiness/rebuild` — refresh from diagram + annotations
 
 ## API
 

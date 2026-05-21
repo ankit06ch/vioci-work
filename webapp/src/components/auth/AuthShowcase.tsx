@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { VIOCI_ICON_SRC } from '../../brand'
+import { Link } from 'react-router-dom'
+import { VIOCI_LOGO_SRC } from '../../brand'
 
 const SLIDES = [
   {
@@ -97,7 +98,9 @@ export function AuthShowcase({ active }: { active?: boolean }) {
   return (
     <aside className={`auth-showcase ${active ? 'auth-showcase-active' : ''}`}>
       <div className="auth-showcase-brand">
-        <img src={VIOCI_ICON_SRC} alt="" className="auth-showcase-logo vioci-logo" />
+        <Link to="/" className="auth-showcase-brand-link" aria-label="VIOCI home">
+          <img src={VIOCI_LOGO_SRC} alt="VIOCI" className="auth-showcase-logo vioci-logo" />
+        </Link>
         <p className="auth-showcase-tagline">Mission Integration</p>
       </div>
 

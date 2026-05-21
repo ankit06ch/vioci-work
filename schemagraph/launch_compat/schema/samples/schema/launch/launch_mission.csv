@@ -1,0 +1,2 @@
+project_id,project_name,mass_kg,orbit_altitude_km,orbit_inclination_deg,power_budget_w,fairing_diameter_m,deployable_span_m,design_life_years,cg_x_mm,cg_y_mm,cg_z_mm,moi_ixx_kgm2,moi_iyy_kgm2,moi_izz_kgm2,interface_type,primary_lateral_hz,primary_axial_hz,vent_area_m2,sealed_volume_m3,max_q_pa,factor_of_safety_structural,preferred_vehicle_id,target_orbit
+vioci-demo-sat,Vioci LEO Observation CubeSat (test fixture),142.0,525,97.6,85,1.2,1.8,3,1.5,-0.8,185,8.2,7.9,3.1,paf_937,18.0,32.0,0.0008,0.12,4200,2.0,f9,sso

@@ -1,0 +1,5 @@
+component_id,node_id,name,subsystem,kind,mass_kg,length_m,width_m,height_m,depth_m,volume_m3,power_w,material,bbox_x_px,bbox_y_px,bbox_w_px,bbox_h_px,notes
+bus_stack,bus_stack,6U Bus Primary Structure,Structure,frame,58.0,0.36,0.23,0.23,,,5,aluminum,140,120,90,160,Al 6061-T6 frame; launch interface at -Z
+deployable_solar,deployable_solar,Deployable Solar Array Wing,Power,panel,22.0,1.8,0.45,0.025,,,55,composite,40,100,60,200,
+payload_camera,payload_camera,EO Camera Payload,Payload,instrument,48.0,0.28,0.22,0.18,,,22,aluminum,160,140,70,80,
+adcs_avionics,adcs_avionics,ADCS & Avionics Stack,ADCS,avionics,14.0,0.2,0.18,0.12,,,8,aluminum,150,60,50,50,

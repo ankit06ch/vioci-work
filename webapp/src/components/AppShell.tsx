@@ -1,24 +1,48 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { VIOCI_ICON_SRC, VIOCI_LOGO_SRC } from '../brand'
+import { WORKSPACE_TAB_CATALOG } from '../lib/workspaceTabs'
 import { useAuthStore } from '../state/auth'
 import { CommandPalette } from './CommandPalette'
 
 type Props = { children: ReactNode }
 
 const NAV = [
-  { to: '/', label: 'Schematic Explorer', icon: '▤', section: 'Operations' },
+  { to: '/workspace', label: 'Schematic Explorer', icon: '▤', section: 'Operations' },
   { to: '/docs', label: 'API Documentation', icon: '⎔', section: 'Developers' },
 ] as const
 
-const AUTH_PATHS = ['/login', '/signup', '/signup/enterprise']
+const SIDEBAR_WORKSPACE_TAB_IDS = [
+  'graph',
+  'schema-data',
+  'mission',
+  'inspector',
+  'launch',
+  'simulation',
+] as const
+
+const WORKSPACE_NAV_ICONS: Record<(typeof SIDEBAR_WORKSPACE_TAB_IDS)[number], string> = {
+  graph: '⌁',
+  'schema-data': '▦',
+  mission: '◎',
+  inspector: '⌕',
+  launch: '△',
+  simulation: '∿',
+}
+
+const WORKSPACE_NAV = SIDEBAR_WORKSPACE_TAB_IDS.map((tabId) => {
+  const tab = WORKSPACE_TAB_CATALOG.find((item) => item.id === tabId)
+  return tab ? { tabId, label: tab.label, hint: tab.hint, icon: WORKSPACE_NAV_ICONS[tabId] } : null
+}).filter((item): item is NonNullable<typeof item> => Boolean(item))
+
+const CHROMELESS_PATHS = ['/', '/login', '/signup', '/signup/enterprise']
 
 export function AppShell({ children }: Props) {
   const loc = useLocation()
   const nav = useNavigate()
   const user = useAuthStore((s) => s.user)
   const clearSession = useAuthStore((s) => s.clearSession)
-  const isAuthPage = AUTH_PATHS.includes(loc.pathname)
+  const isChromelessPage = CHROMELESS_PATHS.includes(loc.pathname)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [clock, setClock] = useState(() => new Date())
 
@@ -39,9 +63,10 @@ export function AppShell({ children }: Props) {
   }, [])
 
   const utc = clock.toISOString().slice(11, 19)
-  const isExplorerHome = loc.pathname === '/' || loc.pathname === '/upload'
+  const isExplorerHome = loc.pathname === '/workspace' || loc.pathname === '/upload'
   const isProjectWorkspace = loc.pathname.startsWith('/projects/')
   const isDocsPage = loc.pathname === '/docs'
+  const selectedWorkspaceTab = new URLSearchParams(loc.search).get('tab')
   const mainContentClass = [
     'main-content',
     isExplorerHome && 'main-content-explorer',
@@ -50,8 +75,14 @@ export function AppShell({ children }: Props) {
   ]
     .filter(Boolean)
     .join(' ')
+  const workspaceTabHref = (tabId: string) => {
+    if (!isProjectWorkspace) return '/workspace'
+    const nextSearch = new URLSearchParams(loc.search)
+    nextSearch.set('tab', tabId)
+    return `${loc.pathname}?${nextSearch.toString()}`
+  }
 
-  if (isAuthPage) {
+  if (isChromelessPage) {
     return <>{children}</>
   }
 
@@ -65,7 +96,7 @@ export function AppShell({ children }: Props) {
       </div>
       <aside className="sidebar" aria-label="Main navigation">
         <div className="sidebar-brand">
-          <Link to="/" className="brand-link" title="Mission Integration">
+          <Link to="/workspace" className="brand-link" title="Mission Integration">
             <img
               src={VIOCI_ICON_SRC}
               alt=""
@@ -89,8 +120,8 @@ export function AppShell({ children }: Props) {
               <div className="nav-section-label sidebar-expand-only">{section}</div>
               {NAV.filter((item) => item.section === section).map((item) => {
                 const active =
-                  item.to === '/'
-                    ? loc.pathname === '/' || loc.pathname === '/upload'
+                  item.to === '/workspace'
+                    ? loc.pathname === '/workspace' || loc.pathname === '/upload'
                     : loc.pathname === item.to
                 return (
                   <Link
@@ -104,6 +135,27 @@ export function AppShell({ children }: Props) {
                   </Link>
                 )
               })}
+              {section === 'Operations'
+                ? WORKSPACE_NAV.map((item) => {
+                    const active = isProjectWorkspace && selectedWorkspaceTab === item.tabId
+                    const href = workspaceTabHref(item.tabId)
+                    return (
+                      <Link
+                        key={item.tabId}
+                        to={href}
+                        className={`nav-item nav-item-workspace ${active ? 'nav-item-active' : ''}`}
+                        title={
+                          isProjectWorkspace
+                            ? `${item.label}${item.hint ? ` — ${item.hint}` : ''}`
+                            : `${item.label} — open a schematic first`
+                        }
+                      >
+                        <span className="nav-icon">{item.icon}</span>
+                        <span className="nav-label sidebar-expand-only">{item.label}</span>
+                      </Link>
+                    )
+                  })
+                : null}
             </div>
           ))}
         </nav>

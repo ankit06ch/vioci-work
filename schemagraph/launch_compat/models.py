@@ -9,6 +9,7 @@ from typing import Any, Literal
 TestStatus = Literal["pass", "warn", "fail", "blocked"]
 OverallStatus = Literal["nominal", "review", "caution", "fail"]
 
+ENGINE_NAME = "AEGIS-LV"
 ENGINE_VERSION = "launch_physics_v2"
 
 
@@ -44,6 +45,7 @@ class PhysicsTestResult:
             "margin_of_safety": self.margin_of_safety,
             "assumptions": self.assumptions,
             "references": self.references,
+            "artifacts": self.artifacts,
         }
 
 

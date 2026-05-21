@@ -24,6 +24,14 @@ class ProjectFolderMove(BaseModel):
     folder_id: str | None = None
 
 
+class DiagramNodesDelete(BaseModel):
+    node_ids: list[str] = Field(min_length=1)
+
+
+class DiagramNodeUpdate(BaseModel):
+    label: str = Field(min_length=1, max_length=160)
+
+
 class ProjectOut(BaseModel):
     id: str
     name: str
@@ -203,6 +211,7 @@ class LaunchCompatResponse(BaseModel):
     orbit: str
     overall_score: int
     overall_status: str
+    engine_name: str | None = None
     engine_version: str | None = None
     vehicle_data_rev: str | None = None
     verdict: str | None = None

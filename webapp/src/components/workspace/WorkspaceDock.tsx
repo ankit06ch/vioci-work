@@ -205,6 +205,11 @@ function DockLeafView({
   const activeDropRaw = dropTarget?.leafId === leaf.id ? dropTarget.rawEdge : null
 
   const handleDragOver = (e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes('Files')) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+      return
+    }
     if (!dragTabId) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'

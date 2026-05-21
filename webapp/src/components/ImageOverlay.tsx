@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import type { DiagramNode } from '../api/types'
 import { classifySubsystem, type Subsystem } from '../lib/subsystems'
-import { componentDiagramNodes } from '../lib/schematicLabels'
+import { componentDiagramNodes, nodeDisplayTitle } from '../lib/schematicLabels'
 import { ProjectImage } from './ProjectImage'
 import { useSelectionStore } from '../state/project'
 
@@ -49,12 +49,22 @@ type Props = {
   nodes: DiagramNode[]
   activeSubsystem?: Subsystem
   onDropCsv?: (nodeId: string, file: File) => void
+  onRenameNode?: (nodeId: string, label: string) => void | Promise<void>
+  onDeleteNodes?: (nodeIds: string[]) => void | Promise<void>
 }
 
-export function ImageOverlay({ projectId, nodes, activeSubsystem, onDropCsv }: Props) {
+export function ImageOverlay({
+  projectId,
+  nodes,
+  activeSubsystem,
+  onDropCsv,
+  onRenameNode,
+  onDeleteNodes,
+}: Props) {
   const selected = useSelectionStore((s) => s.selectedNodeId)
   const setSel = useSelectionStore((s) => s.setSelected)
   const [dim, setDim] = useState({ w: 0, h: 0 })
+  const [menu, setMenu] = useState<{ x: number; y: number; node: DiagramNode } | null>(null)
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -62,7 +72,7 @@ export function ImageOverlay({ projectId, nodes, activeSubsystem, onDropCsv }: P
   }, [])
 
   return (
-    <div className="workspace-canvas">
+    <div className="workspace-canvas" onClick={() => setMenu(null)}>
       <span className="canvas-corner">
         DIAGRAM OVERLAY · {activeSubsystem?.toUpperCase() ?? 'ALL'}
       </span>
@@ -93,34 +103,85 @@ export function ImageOverlay({ projectId, nodes, activeSubsystem, onDropCsv }: P
             if (!bb) return null
             const inSubsystem =
               !activeSubsystem || classifySubsystem(n) === activeSubsystem
-            const cls = n.id === selected ? 'hotspot hotspot-selected' : 'hotspot'
+            if (!inSubsystem) return null
+            const cls = [
+              'hotspot',
+              activeSubsystem ? 'hotspot-subsystem' : '',
+              n.id === selected ? 'hotspot-selected' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')
+            const label = nodeDisplayTitle(n)
+            const labelY = Math.max(14, bb.y - 6)
             return (
-              <rect
-                key={n.id}
-                x={bb.x}
-                y={bb.y}
-                width={bb.w}
-                height={bb.h}
-                className={cls}
-                style={{
-                  pointerEvents: inSubsystem ? 'auto' : 'none',
-                  opacity: inSubsystem ? 1 : 0.22,
-                }}
-                onClick={() => setSel(n.id)}
-                onDragOver={onDropCsv ? onDragOver : undefined}
-                onDrop={
-                  onDropCsv
-                    ? (e) => {
-                        e.preventDefault()
-                        const f = e.dataTransfer.files[0]
-                        if (f) onDropCsv(n.id, f)
-                      }
-                    : undefined
-                }
-              />
+              <g key={n.id} className="hotspot-group">
+                <rect
+                  x={bb.x}
+                  y={bb.y}
+                  width={bb.w}
+                  height={bb.h}
+                  className={cls}
+                  style={{ pointerEvents: 'auto' }}
+                  onClick={() => setSel(n.id)}
+                  onContextMenu={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setSel(n.id)
+                    setMenu({ x: e.clientX, y: e.clientY, node: n })
+                  }}
+                  onDragOver={onDropCsv ? onDragOver : undefined}
+                  onDrop={
+                    onDropCsv
+                      ? (e) => {
+                          e.preventDefault()
+                          const f = e.dataTransfer.files[0]
+                          if (f) onDropCsv(n.id, f)
+                        }
+                      : undefined
+                  }
+                />
+                {activeSubsystem ? (
+                  <text
+                    x={bb.x}
+                    y={labelY}
+                    className="hotspot-label"
+                    pointerEvents="none"
+                  >
+                    {label}
+                  </text>
+                ) : null}
+              </g>
             )
           })}
         </svg>
+      ) : null}
+      {menu ? (
+        <div
+          className="schematic-context-menu"
+          style={{ left: menu.x, top: menu.y }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="schematic-context-title">{nodeDisplayTitle(menu.node)}</div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = window.prompt('Rename component', nodeDisplayTitle(menu.node))
+              setMenu(null)
+              if (next?.trim()) void onRenameNode?.(menu.node.id, next.trim())
+            }}
+          >
+            Rename
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMenu(null)
+              void onDeleteNodes?.([menu.node.id])
+            }}
+          >
+            Delete
+          </button>
+        </div>
       ) : null}
     </div>
   )

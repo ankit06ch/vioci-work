@@ -1,0 +1,35 @@
+test_id,category,mandatory,required_level,field_scope,field_key,description
+mass_capacity,mass,yes,mission,mission,mass_kg,Mission field `mass_kg` required to run mass_capacity
+quasi_static_loads,quasi,yes,mission,mission,mass_kg,Mission field `mass_kg` required to run quasi_static_loads
+structural_stress,structural,yes,mission,mission,mass_kg,Mission field `mass_kg` required to run structural_stress
+orbit_delta_v,orbit,yes,mission,mission,mass_kg,Mission field `mass_kg` required to run orbit_delta_v
+orbit_delta_v,orbit,yes,mission,mission,orbit_altitude_km,Mission field `orbit_altitude_km` required to run orbit_delta_v
+thermal_ascent,thermal,yes,mission,mission,orbit_altitude_km,Mission field `orbit_altitude_km` required to run thermal_ascent
+depressurization,depressurization,yes,mission,mission,orbit_altitude_km,Mission field `orbit_altitude_km` required to run depressurization
+orbit_delta_v,orbit,yes,mission,mission,orbit_inclination_deg,Mission field `orbit_inclination_deg` required to run orbit_delta_v
+static_envelope,static,yes,mission,mission,deployable_span_m,Mission field `deployable_span_m` required to run static_envelope
+dynamic_envelope,dynamic,yes,mission,mission,deployable_span_m,Mission field `deployable_span_m` required to run dynamic_envelope
+modal_lateral,modal,yes,mission,mission,deployable_span_m,Mission field `deployable_span_m` required to run modal_lateral
+static_envelope,static,yes,mission,mission,fairing_diameter_m,Mission field `fairing_diameter_m` required to run static_envelope
+dynamic_envelope,dynamic,yes,mission,mission,fairing_diameter_m,Mission field `fairing_diameter_m` required to run dynamic_envelope
+center_of_gravity,center,yes,mission,mission,cg_x_mm,Mission field `cg_x_mm` required to run center_of_gravity
+center_of_gravity,center,yes,mission,mission,cg_y_mm,Mission field `cg_y_mm` required to run center_of_gravity
+center_of_gravity,center,yes,mission,mission,cg_z_mm,Mission field `cg_z_mm` required to run center_of_gravity
+moments_of_inertia,moments,yes,mission,mission,moi_ixx_kgm2,Mission field `moi_ixx_kgm2` required to run moments_of_inertia
+moments_of_inertia,moments,yes,mission,mission,moi_iyy_kgm2,Mission field `moi_iyy_kgm2` required to run moments_of_inertia
+moments_of_inertia,moments,yes,mission,mission,moi_izz_kgm2,Mission field `moi_izz_kgm2` required to run moments_of_inertia
+modal_lateral,modal,yes,mission,mission,primary_lateral_hz,Mission field `primary_lateral_hz` required to run modal_lateral
+modal_axial,modal,yes,mission,mission,primary_axial_hz,Mission field `primary_axial_hz` required to run modal_axial
+depressurization,depressurization,yes,mission,mission,vent_area_m2,Mission field `vent_area_m2` required to run depressurization
+depressurization,depressurization,yes,mission,mission,sealed_volume_m3,Mission field `sealed_volume_m3` required to run depressurization
+center_of_gravity,center,yes,mission,mission,interface_type,Mission field `interface_type` required to run center_of_gravity
+mass_capacity,mass,partial,component,components[],mass_kg,Per-part `mass_kg` for mass_capacity
+structural_stress,structural,yes,component,components[],mass_kg,Per-part `mass_kg` for structural_stress
+quasi_static_loads,quasi,partial,component,components[],mass_kg,Per-part `mass_kg` for quasi_static_loads
+structural_stress,structural,yes,component,components[],length_m,Per-part `length_m` for structural_stress
+structural_stress,structural,yes,component,components[],width_m,Per-part `width_m` for structural_stress
+structural_stress,structural,yes,component,components[],height_m,Per-part `height_m` for structural_stress
+structural_stress,structural,yes,component,components[],material,Per-part `material` for structural_stress
+structural_stress,structural,yes,component,components[],power_w,Per-part `power_w` for structural_stress
+structural_stress,structural,yes,component,components[],bbox_x_px,Per-part `bbox_x_px` for structural_stress
+center_of_gravity,center,partial,component,components[],bbox_x_px,Per-part `bbox_x_px` for center_of_gravity

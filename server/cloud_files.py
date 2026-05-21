@@ -9,7 +9,7 @@ from server.settings import get_server_settings
 
 log = logging.getLogger(__name__)
 
-_client = None
+_cached_client = None
 
 
 def cloud_storage_enabled() -> bool:
@@ -18,9 +18,9 @@ def cloud_storage_enabled() -> bool:
 
 
 def _client():
-    global _client
-    if _client is not None:
-        return _client
+    global _cached_client
+    if _cached_client is not None:
+        return _cached_client
     s = get_server_settings()
     if not s.supabase_url or not s.supabase_service_role_key:
         raise RuntimeError("Supabase Storage is not configured")
@@ -30,8 +30,8 @@ def _client():
         raise RuntimeError(
             "Install cloud extras: pip install -e '.[web,cloud]'"
         ) from e
-    _client = create_client(s.supabase_url, s.supabase_service_role_key)
-    return _client
+    _cached_client = create_client(s.supabase_url, s.supabase_service_role_key)
+    return _cached_client
 
 
 def _bucket():
@@ -120,7 +120,11 @@ def sync_project_from_cloud(project_dir: Path, project_id: str) -> None:
 def delete_project_cloud(project_id: str) -> None:
     if not cloud_storage_enabled():
         return
-    bucket = _client().storage.from_(_bucket())
+    try:
+        bucket = _client().storage.from_(_bucket())
+    except Exception as e:
+        log.warning("cloud delete skipped for %s: %s", project_id, e)
+        return
     for rel in ("source.png", "diagram.annotated.json"):
         try:
             bucket.remove([_object_key(project_id, rel)])

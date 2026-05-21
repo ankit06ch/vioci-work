@@ -3,11 +3,13 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import {
   formatApiError,
   autoDetectAnnotations,
+  deleteDiagramNodes,
   getAnnotations,
   getDiagram,
   getProject,
   openProjectEvents,
   queueParse,
+  renameDiagramNode,
   uploadSheetCsv,
 } from '../api/client'
 import type { Diagram, DiagramNode, PartAnnotation, ProjectMeta, WsEvent } from '../api/types'
@@ -16,6 +18,7 @@ import { WorkspaceDock, type DockTabMeta } from '../components/workspace/Workspa
 import { useWorkspaceDock } from '../hooks/useWorkspaceDock'
 import {
   IntegrationTerminal,
+  type Line as TerminalLine,
   type WorkspaceTerminalAction,
   type WorkspaceTerminalResult,
 } from '../components/IntegrationTerminal'
@@ -65,6 +68,8 @@ export function ProjectView() {
   const [annotations, setAnnotations] = useState<PartAnnotation[]>([])
   const [satelliteProfile, setSatelliteProfile] = useState<SatelliteProfile>({})
   const [profilePending, setProfilePending] = useState<PendingQuestion[]>([])
+  const [terminalFeed, setTerminalFeed] = useState<TerminalLine[]>([])
+  const requestedSidebarTabRef = useRef<string | null>(null)
 
   const setSel = useSelectionStore((s) => s.setSelected)
   const setStoreDiagram = useSelectionStore((s) => s.setDiagram)
@@ -233,6 +238,18 @@ export function ProjectView() {
     [dock],
   )
 
+  useEffect(() => {
+    const requestedTab = search.get('tab')
+    if (!requestedTab || !WORKSPACE_TAB_LABELS[requestedTab]) {
+      requestedSidebarTabRef.current = null
+      return
+    }
+    const requestKey = `${projectId}:${requestedTab}`
+    if (requestedSidebarTabRef.current === requestKey) return
+    requestedSidebarTabRef.current = requestKey
+    openTab(requestedTab, WORKSPACE_TAB_LABELS[requestedTab])
+  }, [openTab, projectId, search])
+
   const closeTab = useCallback(
     (tabId: string) => {
       if (tabId === 'terminal') return
@@ -253,6 +270,31 @@ export function ProjectView() {
     if (!diagram || !selectedId) return null
     return diagram.nodes.find((n) => n.id === selectedId) ?? null
   }, [diagram, selectedId])
+
+  const handleDeleteComponents = useCallback(
+    async (nodeIds: string[]) => {
+      if (!projectId || !nodeIds.length) return
+      const next = await deleteDiagramNodes(projectId, nodeIds)
+      setDiagram(next)
+      setStoreDiagram(next)
+      setAnnotations((items) => items.filter((a) => !a.node_id || !nodeIds.includes(a.node_id)))
+      if (selectedId && nodeIds.includes(selectedId)) {
+        setSel(null)
+      }
+    },
+    [projectId, selectedId, setSel, setStoreDiagram],
+  )
+
+  const handleRenameComponent = useCallback(
+    async (nodeId: string, label: string) => {
+      if (!projectId) return
+      const next = await renameDiagramNode(projectId, nodeId, label)
+      setDiagram(next)
+      setStoreDiagram(next)
+      setAnnotations((items) => items.map((a) => (a.node_id === nodeId ? { ...a, name: label } : a)))
+    },
+    [projectId, setStoreDiagram],
+  )
 
   const handleWorkspaceMessage = useCallback(
     (message: string): WorkspaceTerminalResult => {
@@ -356,6 +398,17 @@ export function ProjectView() {
     [projectId, pushTerminalSql],
   )
 
+  const handleLaunchTerminalLog = useCallback((lines: string[]) => {
+    setTerminalFeed((prev) => [
+      ...prev,
+      ...lines.map((text) => ({
+        kind: text.includes('ERROR') ? ('err' as const) : ('sys' as const),
+        text,
+      })),
+    ])
+    openTab('terminal', 'Terminal', undefined, { focusContentPane: false })
+  }, [openTab])
+
   const statusBadge =
     meta?.parse_status === 'error'
       ? 'badge-err'
@@ -375,6 +428,7 @@ export function ProjectView() {
             projectId={projectId}
             parseStatus={meta!.parse_status}
             hasDiagram={!!diagram}
+            externalLines={terminalFeed}
             onWorkspaceMessage={handleWorkspaceMessage}
             onWorkspaceAction={handleWorkspaceAction}
             onOpenWorkspaceTab={(tabId) =>
@@ -405,6 +459,8 @@ export function ProjectView() {
                 projectId={projectId}
                 nodes={diagram.nodes}
                 activeSubsystem={activeSubsystem}
+                onRenameNode={handleRenameComponent}
+                onDeleteNodes={handleDeleteComponents}
                 onDropCsv={async (nid, file) => {
                   await uploadSheetCsv(projectId, nid, file)
                   const d = await getDiagram(projectId)
@@ -414,7 +470,12 @@ export function ProjectView() {
                 }}
               />
             </div>
-            <SubsystemComponentList nodes={diagram.nodes} subsystem={activeSubsystem} />
+            <SubsystemComponentList
+              nodes={diagram.nodes}
+              subsystem={activeSubsystem}
+              onDeleteNodes={handleDeleteComponents}
+              onRenameNode={handleRenameComponent}
+            />
           </div>
         )
       }
@@ -471,7 +532,7 @@ export function ProjectView() {
           profile={satelliteProfile}
           annotations={annotations}
           compact
-          hideHeader
+          onTerminalLog={handleLaunchTerminalLog}
         />
       )
     }
@@ -551,7 +612,7 @@ export function ProjectView() {
           <code className="mono">make dev</code> from repo root.
         </p>
         <div className="footer-actions">
-          <Link to="/" className="btn btn-primary">
+          <Link to="/workspace" className="btn btn-primary">
             Mission Registry
           </Link>
         </div>
@@ -562,7 +623,7 @@ export function ProjectView() {
   return (
     <div className="mission-layout">
       <header className="mission-header">
-        <Link to="/" className="btn btn-ghost">
+        <Link to="/workspace" className="btn btn-ghost">
           ← Registry
         </Link>
         <h2>{meta.name}</h2>

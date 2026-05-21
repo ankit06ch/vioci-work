@@ -158,7 +158,9 @@ export function missingFields(
   return PROFILE_FIELDS.filter((f) => {
     if (!f.requiredFor.includes(intent) && !f.requiredFor.includes('all')) return false
     const v = profile[f.key]
-    return v === undefined || v === '' || Number.isNaN(Number(v))
+    if (v === undefined || v === null || v === '') return true
+    if (f.key === 'interface_type') return String(v).trim().length === 0
+    return Number.isNaN(Number(v))
   })
 }
 

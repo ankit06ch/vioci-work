@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from schemagraph.launch_compat import LaunchPhysicsEngine, list_launch_vehicles
 from schemagraph.launch_compat.loads.parser import parse_load_file
+from schemagraph.launch_compat.models import ENGINE_NAME, ENGINE_VERSION
 from schemagraph.launch_compat.tests.registry import list_tests
 from server.annotation_service import load_document
 from server.auth import get_current_user
@@ -24,7 +25,7 @@ def get_launch_vehicles():
 
 @router.get("/launch-compat/tests")
 def get_physics_tests():
-    return {"tests": list_tests(), "engine": "launch_physics_v2"}
+    return {"tests": list_tests(), "engine": ENGINE_VERSION, "engine_name": ENGINE_NAME}
 
 
 @router.get("/projects/{project_id}/launch-compat/report")
@@ -51,12 +52,31 @@ def run_launch_compat(
     ann_doc = load_document(session, project_id)
     diagram = storage.get_diagram(session, project_id)
     overrides = load_overrides(session, project_id)
+    profile = dict(body.profile or {})
+    annotations = ann_doc.annotations
+    try:
+        from schemagraph.launch_compat.schema.builder import (
+            load_launch_readiness,
+            mission_to_profile,
+            components_to_annotations,
+        )
+
+        launch_doc = load_launch_readiness(project_id)
+        if launch_doc:
+            lp = mission_to_profile(launch_doc.get("mission") or {})
+            for k, v in lp.items():
+                profile.setdefault(k, v)
+            la = components_to_annotations(launch_doc.get("components") or [])
+            if la and any(a.get("mass_kg") for a in la):
+                annotations = la
+    except Exception:
+        pass
     try:
         result = LaunchPhysicsEngine.run_suite(
             vehicle_id=body.vehicle_id,
             orbit=body.orbit,
-            profile=body.profile,
-            annotations=ann_doc.annotations,
+            profile=profile,
+            annotations=annotations,
             diagram=diagram,
             load_overrides=overrides,
         )

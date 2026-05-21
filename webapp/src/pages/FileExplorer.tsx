@@ -11,6 +11,7 @@ import {
   openProjectEvents,
   queueParse,
   refreshSchemaRegistry,
+  importLaunchReadiness,
   uploadProjects,
 } from '../api/client'
 import type { ProjectMeta, SchemaFolder, WsEvent } from '../api/types'
@@ -19,12 +20,44 @@ import { ExplorerTree } from '../components/ExplorerTree'
 import { LoadingIndicator } from '../components/LoadingIndicator'
 import { ProjectImage } from '../components/ProjectImage'
 import {
+  EXPLORER_CSV_FILE_IDS,
   SCHEMA_EXPORT_FILES,
   type ExplorerSchemaFileId,
 } from '../lib/schemaExports'
-import { schemaRegistryCsvUrl } from '../api/client'
+import { explorerSchemaFileUrl, schemaRegistryCsvUrl } from '../api/client'
 
-const ACCEPT = 'image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf'
+function schemaExportDownloadUrl(
+  projectId: string,
+  fileId: ExplorerSchemaFileId,
+): string | null {
+  if (fileId === 'components' || fileId === 'dependencies' || fileId === 'properties') {
+    return schemaRegistryCsvUrl(projectId, fileId)
+  }
+  if (
+    fileId === 'manifest' ||
+    fileId === 'launch_schema' ||
+    fileId === 'launch_readiness' ||
+    EXPLORER_CSV_FILE_IDS.has(fileId)
+  ) {
+    return explorerSchemaFileUrl(projectId, fileId)
+  }
+  return null
+}
+
+const ACCEPT_SCHEMATIC =
+  'image/png,image/jpeg,image/webp,image/gif,application/pdf,.pdf'
+const ACCEPT_WITH_JSON = `${ACCEPT_SCHEMATIC},.json,application/json,text/json`
+
+function partitionDroppedFiles(files: File[]): { schematics: File[]; launchJson: File[] } {
+  const schematics: File[] = []
+  const launchJson: File[] = []
+  for (const f of files) {
+    const n = f.name.toLowerCase()
+    if (n.endsWith('.json') || f.type.includes('json')) launchJson.push(f)
+    else schematics.push(f)
+  }
+  return { schematics, launchJson }
+}
 
 function extLabel(name: string): string {
   const i = name.lastIndexOf('.')
@@ -169,24 +202,37 @@ export function FileExplorer() {
     async (files: FileList | File[] | null, folderId: string | null = selectedFolderId) => {
       const list = files ? Array.from(files) : []
       if (!list.length) return
+      const { schematics, launchJson } = partitionDroppedFiles(list)
+      if (launchJson.length && !selected) {
+        setErr('Select a schematic in the tree, then drop launch readiness .json to import mission data.')
+        return
+      }
       setBusy(true)
       setErr(null)
       try {
-        const created = await uploadProjects(list, folderId)
-        await refresh()
-        if (created.length) {
-          const firstId = created[0].id
-          setSelectedId(firstId)
-          setSchemaExpanded((prev) => ({ ...prev, [firstId]: true }))
-          setSelectedSchemaFile(null)
-          setRows((cur) =>
-            (cur ?? []).map((r) =>
-              created.some((p) => p.id === r.id)
-                ? { ...r, parse_status: 'queued' as const }
-                : r,
-            ),
-          )
-          attachParseEvents(firstId)
+        if (launchJson.length && selected) {
+          for (const f of launchJson) {
+            await importLaunchReadiness(selected.id, f)
+          }
+          await refresh()
+        }
+        if (schematics.length) {
+          const created = await uploadProjects(schematics, folderId)
+          await refresh()
+          if (created.length) {
+            const firstId = created[0].id
+            setSelectedId(firstId)
+            setSchemaExpanded((prev) => ({ ...prev, [firstId]: true }))
+            setSelectedSchemaFile(null)
+            setRows((cur) =>
+              (cur ?? []).map((r) =>
+                created.some((p) => p.id === r.id)
+                  ? { ...r, parse_status: 'queued' as const }
+                  : r,
+              ),
+            )
+            attachParseEvents(firstId)
+          }
         }
       } catch (e) {
         setErr(formatApiError(e))
@@ -194,7 +240,7 @@ export function FileExplorer() {
         setBusy(false)
       }
     },
-    [refresh, selectedFolderId, attachParseEvents],
+    [refresh, selectedFolderId, attachParseEvents, selected],
   )
 
   const onCreateFolder = useCallback(
@@ -332,7 +378,7 @@ export function FileExplorer() {
             ref={inputRef}
             type="file"
             multiple
-            accept={ACCEPT}
+            accept={ACCEPT_WITH_JSON}
             hidden
             onChange={(e) => void onUpload(e.target.files)}
           />
@@ -383,7 +429,7 @@ export function FileExplorer() {
           {!selected ? (
             <div className="explorer-detail-empty">
               <p className="muted">Select a schematic in the tree, or drop files onto a folder.</p>
-              <p className="mono explorer-drop-hint">image/* · PDF</p>
+              <p className="mono explorer-drop-hint">image/* · PDF · .json (imports into selected project)</p>
             </div>
           ) : (
             <>
@@ -440,14 +486,11 @@ export function FileExplorer() {
                         >
                           <span>{f.icon}</span> {f.label}
                         </button>
-                        {f.id !== 'manifest' ? (
+                        {schemaExportDownloadUrl(selected.id, f.id) ? (
                           <a
                             className="explorer-schema-dl"
-                            href={schemaRegistryCsvUrl(
-                              selected.id,
-                              f.id as 'components' | 'dependencies' | 'properties',
-                            )}
-                            download
+                            href={schemaExportDownloadUrl(selected.id, f.id)!}
+                            download={f.label}
                           >
                             Download
                           </a>
@@ -525,7 +568,9 @@ export function FileExplorer() {
 
       {drag ? (
         <div className="explorer-drag-overlay">
-          Upload to {uploadTargetName}
+          {selected
+            ? `Drop schematics → ${uploadTargetName} · .json → import into ${selected.name}`
+            : `Upload to ${uploadTargetName}`}
         </div>
       ) : null}
     </div>

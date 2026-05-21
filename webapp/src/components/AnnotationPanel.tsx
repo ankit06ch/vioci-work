@@ -23,6 +23,15 @@ import { IconEnterFullscreen, IconExitFullscreen } from './FullscreenIcons'
 
 type DrawMode = 'select' | 'line' | 'arrow' | 'rect' | 'polygon' | 'polyline'
 
+const DRAW_MODE_SHORTCUTS: Record<DrawMode, string> = {
+  select: '⌘1',
+  polygon: '⌘P / ⌘2',
+  polyline: '⇧⌘P / ⌘3',
+  line: '⌘L / ⌘4',
+  arrow: '⇧⌘A / ⌘5',
+  rect: '⌘R / ⌘6',
+}
+
 function translatePart(a: PartAnnotation, dx: number, dy: number): PartAnnotation {
   const move = (p: [number, number]): [number, number] => [p[0] + dx, p[1] + dy]
   return {
@@ -269,6 +278,27 @@ function normalizePartShape(a: PartAnnotation): PartAnnotation {
 
 function filterComponentAnnotations(parts: PartAnnotation[]): PartAnnotation[] {
   return parts.filter((a) => !isAxisReferenceLabel(a.name))
+}
+
+function createManualPart(name = 'New part'): PartAnnotation {
+  return {
+    id: uid(),
+    node_id: null,
+    name,
+    auto_detected: false,
+    bbox: null,
+    vectors: [],
+    mass_kg: null,
+    length_m: null,
+    width_m: null,
+    height_m: null,
+    depth_m: null,
+    volume_m3: null,
+    material: null,
+    power_w: null,
+    notes: null,
+    extra: {},
+  }
 }
 
 function renderVector(
@@ -606,6 +636,13 @@ export function AnnotationPanel({
     listAnchorId.current = null
   }, [])
 
+  const activateDrawMode = useCallback((mode: DrawMode) => {
+    setDrawMode(mode)
+    setDraftPoints([])
+    setDraftCursor(null)
+    if (mode !== 'select') setSelectedVectorId(null)
+  }, [])
+
   const deleteSelection = useCallback(() => {
     if (selectedVectorId && selectedAnnIds.length <= 1) {
       const parentId = annotations.find((a) =>
@@ -673,7 +710,31 @@ export function AnnotationPanel({
         return
       }
 
-      if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return
+      const mod = e.metaKey || e.ctrlKey
+      const key = e.key.toLowerCase()
+      if (mod && !inField) {
+        const shortcutMode =
+          key === '1'
+            ? 'select'
+            : key === '2' || (!e.shiftKey && key === 'p')
+              ? 'polygon'
+              : key === '3' || (e.shiftKey && key === 'p')
+                ? 'polyline'
+                : key === '4' || (!e.shiftKey && key === 'l')
+                  ? 'line'
+                  : key === '5' || (e.shiftKey && key === 'a')
+                    ? 'arrow'
+                    : key === '6' || (!e.shiftKey && key === 'r')
+                      ? 'rect'
+                      : null
+        if (shortcutMode) {
+          e.preventDefault()
+          activateDrawMode(shortcutMode)
+          return
+        }
+      }
+
+      if (!mod || key !== 'z') return
       if (inField) return
       e.preventDefault()
       if (e.shiftKey) {
@@ -696,6 +757,7 @@ export function AnnotationPanel({
     draftPoints.length,
     deleteSelection,
     clearSelection,
+    activateDrawMode,
     selectedAnnIds.length,
     selectedVectorId,
   ])
@@ -865,24 +927,7 @@ export function AnnotationPanel({
   )
 
   const addManualPart = () => {
-    const a: PartAnnotation = {
-      id: uid(),
-      node_id: null,
-      name: 'New part',
-      auto_detected: false,
-      bbox: null,
-      vectors: [],
-      mass_kg: null,
-      length_m: null,
-      width_m: null,
-      height_m: null,
-      depth_m: null,
-      volume_m3: null,
-      material: null,
-      power_w: null,
-      notes: null,
-      extra: {},
-    }
+    const a = createManualPart()
     apply([...annotations, a], true)
     setSelectedAnnIds([a.id])
     listAnchorId.current = a.id
@@ -893,34 +938,16 @@ export function AnnotationPanel({
     return [Math.max(0, Math.min(dim.w, x)), Math.max(0, Math.min(dim.h, y))]
   }
 
-  const resolveVectorTargetId = useCallback((): string | null => {
-    if (primaryAnnId) return primaryAnnId
-    if (!annotations.length) {
-      const a: PartAnnotation = {
-        id: uid(),
-        node_id: null,
-        name: 'New part',
-        auto_detected: false,
-        bbox: null,
-        vectors: [],
-        mass_kg: null,
-        length_m: null,
-        width_m: null,
-        height_m: null,
-        depth_m: null,
-        volume_m3: null,
-        material: null,
-        power_w: null,
-        notes: null,
-        extra: {},
+  const resolveVectorTarget = useCallback(
+    (base: PartAnnotation[]): { targetId: string; parts: PartAnnotation[] } => {
+      if (primaryAnnId && base.some((a) => a.id === primaryAnnId)) {
+        return { targetId: primaryAnnId, parts: base }
       }
-      apply([...annotations, a], true)
-      setSelectedAnnIds([a.id])
-      listAnchorId.current = a.id
-      return a.id
-    }
-    return annotations[0]?.id ?? null
-  }, [annotations, apply, primaryAnnId])
+      const part = createManualPart()
+      return { targetId: part.id, parts: [...base, part] }
+    },
+    [primaryAnnId],
+  )
 
   const finishPathDrawing = useCallback(() => {
     const minPts = drawMode === 'polygon' ? 3 : 2
@@ -929,18 +956,17 @@ export function AnnotationPanel({
       setDraftCursor(null)
       return
     }
-    const targetId = resolveVectorTargetId()
-    if (!targetId) return
+    const { targetId, parts } = resolveVectorTarget(annotations)
     const kind: AnnotationVectorKind = drawMode === 'polygon' ? 'polygon' : 'polyline'
     const vec: AnnotationVector = {
       id: uid(),
       kind,
       points: [...draftPoints],
       auto: false,
-      label: annotations.find((a) => a.id === targetId)?.name,
+      label: parts.find((a) => a.id === targetId)?.name,
     }
     apply(
-      annotations.map((a) => {
+      parts.map((a) => {
         if (a.id !== targetId) return a
         const cleaned = a.vectors.filter((v) => !(v.auto && v.kind === 'rect'))
         const next: PartAnnotation = {
@@ -954,9 +980,12 @@ export function AnnotationPanel({
       }),
       true,
     )
+    setSelectedAnnIds([targetId])
+    setSelectedVectorId(vec.id)
+    listAnchorId.current = targetId
     setDraftPoints([])
     setDraftCursor(null)
-  }, [annotations, apply, draftPoints, drawMode, resolveVectorTargetId])
+  }, [annotations, apply, draftPoints, drawMode, resolveVectorTarget])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1238,12 +1267,7 @@ export function AnnotationPanel({
         [start[0], end[1]],
       ]
     }
-    const targetId = resolveVectorTargetId()
-    if (!targetId) {
-      setDraftPoints([])
-      setDraftCursor(null)
-      return
-    }
+    const { targetId, parts } = resolveVectorTarget(annotations)
     const kind: AnnotationVectorKind =
       drawMode === 'arrow' ? 'arrow' : drawMode === 'rect' ? 'rect' : 'line'
     const vec: AnnotationVector = {
@@ -1251,11 +1275,11 @@ export function AnnotationPanel({
       kind,
       points,
       auto: false,
-      label: annotations.find((a) => a.id === targetId)?.name ?? null,
+      label: parts.find((a) => a.id === targetId)?.name ?? null,
     }
     const bb = kind === 'rect' ? bboxFromPoints(points) : null
     apply(
-      annotations.map((a) => {
+      parts.map((a) => {
         if (a.id !== targetId) return a
         const next: PartAnnotation = {
           ...a,
@@ -1267,6 +1291,9 @@ export function AnnotationPanel({
       }),
       true,
     )
+    setSelectedAnnIds([targetId])
+    setSelectedVectorId(vec.id)
+    listAnchorId.current = targetId
     setDraftPoints([])
     setDraftCursor(null)
   }
@@ -1382,13 +1409,11 @@ export function AnnotationPanel({
               key={m}
               type="button"
               className={`btn btn-ghost ${drawMode === m ? 'tab-active' : ''}`}
-              onClick={() => {
-                setDrawMode(m)
-                setDraftPoints([])
-                setDraftCursor(null)
-              }}
+              title={`${label} (${DRAW_MODE_SHORTCUTS[m].replaceAll('⌘', '⌘/Ctrl+')})`}
+              onClick={() => activateDrawMode(m)}
             >
               {label}
+              <span className="annotation-shortcut mono">{DRAW_MODE_SHORTCUTS[m]}</span>
             </button>
           ))}
           {isDrawingPath && draftPoints.length > 0 ? (
@@ -1419,6 +1444,9 @@ export function AnnotationPanel({
           </button>
           <span className="muted mono" style={{ fontSize: '0.68rem' }}>
             {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
+          </span>
+          <span className="muted mono annotation-shortcut-hint">
+            shortcuts: ⌘P polygon · ⇧⌘P path · ⌘1-6 tools
           </span>
         </div>
       </div>

@@ -47,7 +47,7 @@ export function EnterpriseSignup() {
   }
 
   if (booting) {
-    return <BootSequence onComplete={() => nav('/', { replace: true })} />
+    return <BootSequence onComplete={() => nav('/workspace', { replace: true })} />
   }
 
   return (

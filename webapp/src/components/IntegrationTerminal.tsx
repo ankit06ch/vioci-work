@@ -16,7 +16,7 @@ import {
   type TerminalSuggestion,
 } from '../lib/terminalSuggestions'
 
-type Line = { kind: 'in' | 'out' | 'err' | 'sys'; text: string }
+export type Line = { kind: 'in' | 'out' | 'err' | 'sys'; text: string }
 
 export type WorkspaceTerminalAction =
   | { type: 'store-dynamic-result'; tabId: string; text: string }
@@ -37,6 +37,7 @@ type Props = {
   projectId: string
   parseStatus?: string
   hasDiagram?: boolean
+  externalLines?: Line[]
   onWorkspaceMessage?: (message: string) => WorkspaceTerminalResult
   onWorkspaceAction?: (action: WorkspaceTerminalAction) => void
   onOpenWorkspaceTab?: (tabId: string) => string
@@ -66,6 +67,7 @@ export function IntegrationTerminal({
   projectId,
   parseStatus,
   hasDiagram,
+  externalLines,
   onWorkspaceMessage,
   onWorkspaceAction,
   onOpenWorkspaceTab,
@@ -82,12 +84,22 @@ export function IntegrationTerminal({
   const [suggestIdx, setSuggestIdx] = useState(-1)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const externalLineCountRef = useRef(0)
 
   const suggestions = showSuggestions ? getTerminalSuggestions(input, history) : []
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [lines, busy])
+
+  useEffect(() => {
+    if (!externalLines?.length) return
+    const next = externalLines.slice(externalLineCountRef.current)
+    externalLineCountRef.current = externalLines.length
+    if (next.length) {
+      setLines((prev) => [...prev, ...next])
+    }
+  }, [externalLines])
 
   const append = useCallback((kind: Line['kind'], text: string) => {
     setLines((prev) => [...prev, { kind, text }])

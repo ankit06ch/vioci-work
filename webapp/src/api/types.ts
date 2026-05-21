@@ -229,6 +229,7 @@ export interface LaunchCompatResult {
   orbit: string
   overall_score: number
   overall_status: 'nominal' | 'review' | 'caution' | 'fail'
+  engine_name?: string
   engine_version?: string
   vehicle_data_rev?: string
   verdict?: string

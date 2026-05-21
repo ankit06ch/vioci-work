@@ -5,6 +5,7 @@ import { AppShell } from './components/AppShell'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Docs } from './pages/Docs'
 import { EnterpriseSignup } from './pages/EnterpriseSignup'
+import { Home } from './pages/Home'
 import { Login } from './pages/Login'
 import { FileExplorer } from './pages/FileExplorer'
 import { ProjectView } from './pages/ProjectView'
@@ -13,18 +14,19 @@ import { Signup } from './pages/Signup'
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/signup/enterprise" element={<EnterpriseSignup />} />
       <Route
-        path="/"
+        path="/workspace"
         element={
           <ProtectedRoute>
             <FileExplorer />
           </ProtectedRoute>
         }
       />
-      <Route path="/upload" element={<Navigate to="/" replace />} />
+      <Route path="/upload" element={<Navigate to="/workspace" replace />} />
       <Route
         path="/docs"
         element={

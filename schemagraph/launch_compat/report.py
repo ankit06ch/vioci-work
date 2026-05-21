@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from schemagraph.launch_compat.models import ENGINE_VERSION, OverallStatus, PhysicsTestResult
+from schemagraph.launch_compat.models import ENGINE_NAME, ENGINE_VERSION, OverallStatus, PhysicsTestResult
 
 
 def build_report(
@@ -55,6 +55,7 @@ def build_report(
     tests = [r.to_check_dict() for r in results]
 
     return {
+        "engine_name": ENGINE_NAME,
         "engine_version": ENGINE_VERSION,
         "vehicle_id": vehicle_id,
         "vehicle_name": vehicle_name,
@@ -71,10 +72,11 @@ def build_report(
         "warnings": warnings,
         "stress_field": stress_field or {},
         "simulation": {
+            "engine_name": ENGINE_NAME,
             "engine": ENGINE_VERSION,
             "fea_mode": (stress_field or {}).get("fea_mode", "none"),
             "notes": (
-                "Analytical launch physics engine. Flight release requires measured mass properties "
+                f"{ENGINE_NAME} analytical mission assurance engine. Flight release requires measured mass properties "
                 "and qualification testing. BLOCKED tests indicate missing required inputs."
             ),
         },

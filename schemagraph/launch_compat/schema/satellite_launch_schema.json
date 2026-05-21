@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vioci.dev/schemas/satellite-launch-readiness/v1",
+  "title": "SatelliteLaunchReadiness",
+  "description": "Mission and component data required to run the full Launch Physics Engine test suite without BLOCKED gates.",
+  "type": "object",
+  "required": ["schema_version", "mission"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1,
+      "description": "Schema revision; bump when field catalog changes."
+    },
+    "project_id": { "type": "string" },
+    "project_name": { "type": "string" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "extraction_source": {
+      "type": "string",
+      "enum": ["manual", "schematic_parse", "annotation_sync", "csv_import", "mixed"],
+      "description": "How this document was produced."
+    },
+    "mission": { "$ref": "#/$defs/Mission" },
+    "components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Component" },
+      "minItems": 1,
+      "description": "At least one physical component with mass for structural and mass aggregation."
+    },
+    "launch_vehicle_preferences": {
+      "type": "object",
+      "properties": {
+        "preferred_vehicle_id": {
+          "type": "string",
+          "enum": ["f9", "elec", "starship", "vulcan", "a6"]
+        },
+        "target_orbit": { "type": "string", "enum": ["leo", "gto", "sso"] }
+      },
+      "additionalProperties": false
+    },
+    "check_readiness": { "$ref": "#/$defs/CheckReadiness" }
+  },
+  "$defs": {
+    "Mission": {
+      "type": "object",
+      "description": "Spacecraft-level parameters (maps to launch_mission.csv row).",
+      "required": [
+        "mass_kg",
+        "orbit_altitude_km",
+        "deployable_span_m",
+        "fairing_diameter_m"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "mass_kg": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Total wet mass [kg]. Tests: mass_capacity, quasi_static, structural_stress."
+        },
+        "orbit_altitude_km": {
+          "type": "number",
+          "minimum": 200,
+          "maximum": 36000,
+          "description": "Target circular orbit altitude [km]. Tests: orbit_delta_v, thermal_ascent, depressurization."
+        },
+        "orbit_inclination_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 180,
+          "description": "Orbit inclination [deg]. Tests: orbit_delta_v (plane change)."
+        },
+        "power_budget_w": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total spacecraft power [W]. Advisory for thermal/power maps."
+        },
+        "fairing_diameter_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Maximum body diameter [m]. Tests: static_envelope, dynamic_envelope, fairing_height."
+        },
+        "deployable_span_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Max deployable appendage span [m]. Tests: envelope, modal estimates."
+        },
+        "design_life_years": { "type": "number", "minimum": 0 },
+        "cg_x_mm": {
+          "type": "number",
+          "description": "CG lateral X from interface origin [mm]. Tests: center_of_gravity."
+        },
+        "cg_y_mm": { "type": "number", "description": "CG lateral Y [mm]." },
+        "cg_z_mm": {
+          "type": "number",
+          "minimum": 0,
+          "description": "CG height above separation interface [mm]. Tests: center_of_gravity."
+        },
+        "moi_ixx_kgm2": { "type": "number", "minimum": 0, "description": "Measured MOI about X." },
+        "moi_iyy_kgm2": { "type": "number", "minimum": 0 },
+        "moi_izz_kgm2": { "type": "number", "minimum": 0 },
+        "interface_type": {
+          "type": "string",
+          "enum": ["paf_1575", "paf_2624", "paf_3117", "standard_port", "four_point", "custom"],
+          "description": "Launch vehicle mechanical interface class."
+        },
+        "primary_lateral_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Measured primary lateral mode [Hz]. Tests: modal_lateral."
+        },
+        "primary_axial_hz": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Measured primary axial mode [Hz]. Tests: modal_axial."
+        },
+        "vent_area_m2": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Fairing vent orifice area [m²]. Tests: depressurization."
+        },
+        "sealed_volume_m3": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "Sealed internal cavity volume [m³]. Tests: depressurization."
+        },
+        "max_q_pa": { "type": "number", "minimum": 0, "description": "Max dynamic pressure during ascent [Pa]." },
+        "factor_of_safety_structural": {
+          "type": "number",
+          "minimum": 1,
+          "default": 2,
+          "description": "Structural factor of safety for random vibe allowable."
+        }
+      }
+    },
+    "Component": {
+      "type": "object",
+      "required": ["component_id", "name", "mass_kg", "length_m", "width_m", "height_m", "material"],
+      "additionalProperties": false,
+      "properties": {
+        "component_id": { "type": "string" },
+        "node_id": { "type": ["string", "null"] },
+        "name": { "type": "string", "minLength": 1 },
+        "subsystem": {
+          "type": "string",
+          "enum": [
+            "Structure",
+            "Propulsion",
+            "Power",
+            "ADCS",
+            "Communications",
+            "Payload",
+            "Thermal",
+            "Avionics",
+            "Other"
+          ]
+        },
+        "kind": { "type": "string" },
+        "mass_kg": { "type": "number", "exclusiveMinimum": 0 },
+        "length_m": { "type": "number", "exclusiveMinimum": 0 },
+        "width_m": { "type": "number", "exclusiveMinimum": 0 },
+        "height_m": { "type": "number", "exclusiveMinimum": 0 },
+        "depth_m": { "type": "number", "minimum": 0 },
+        "volume_m3": { "type": "number", "minimum": 0 },
+        "power_w": { "type": "number", "minimum": 0 },
+        "material": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Maps to material_db (aluminum, CFRP, titanium, …)."
+        },
+        "bbox_x_px": { "type": "number", "description": "Schematic bbox origin X [px]." },
+        "bbox_y_px": { "type": "number" },
+        "bbox_w_px": { "type": "number", "exclusiveMinimum": 0 },
+        "bbox_h_px": { "type": "number", "exclusiveMinimum": 0 },
+        "cg_offset_x_m": { "type": "number" },
+        "cg_offset_y_m": { "type": "number" },
+        "cg_offset_z_m": { "type": "number" },
+        "notes": { "type": "string" }
+      }
+    },
+    "CheckReadiness": {
+      "type": "object",
+      "description": "Computed summary of which physics tests can run.",
+      "properties": {
+        "ready_count": { "type": "integer", "minimum": 0 },
+        "blocked_count": { "type": "integer", "minimum": 0 },
+        "missing_mission_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "missing_component_fields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tests_unblocked": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

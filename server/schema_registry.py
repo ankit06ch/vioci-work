@@ -20,6 +20,16 @@ SCHEMA_DIR_NAME = "schema"
 MANIFEST_NAME = "satellite_schema.json"
 REGISTRY_TABLES = frozenset({"components", "dependencies", "properties"})
 
+# Explorer tree file keys → paths under project workspace (no .. segments).
+EXPLORER_SCHEMA_FILES: dict[str, str] = {
+    "manifest": f"schema/{MANIFEST_NAME}",
+    "launch_readiness": "schema/launch/launch_readiness.json",
+    "launch_schema": "schema/launch/satellite_launch_schema.json",
+    "launch_mission": "schema/launch/launch_mission.csv",
+    "launch_components": "schema/launch/launch_components.csv",
+    "launch_check_catalog": "schema/launch/launch_check_catalog.csv",
+}
+
 
 def schema_dir(project_id: str) -> Path:
     d = project_dir(project_id) / SCHEMA_DIR_NAME
@@ -62,7 +72,54 @@ def list_registry_files(project_id: str) -> list[dict[str, Any]]:
                     "size_bytes": p.stat().st_size,
                 }
             )
+    lr = doc.get("launch_readiness") or {}
+    manifest_rel = lr.get("manifest")
+    if manifest_rel:
+        p = project_dir(project_id) / str(manifest_rel)
+        if p.is_file():
+            out.append(
+                {
+                    "id": "launch_readiness",
+                    "name": p.name,
+                    "path": str(manifest_rel),
+                    "size_bytes": p.stat().st_size,
+                }
+            )
+    for key, rel in (lr.get("files") or {}).items():
+        explorer_id = key if key in EXPLORER_SCHEMA_FILES else f"launch_{key}"
+        p = project_dir(project_id) / str(rel)
+        if p.is_file() and not any(x["id"] == explorer_id for x in out):
+            out.append(
+                {
+                    "id": explorer_id,
+                    "name": p.name,
+                    "path": str(rel),
+                    "size_bytes": p.stat().st_size,
+                }
+            )
     return out
+
+
+def registry_explorer_file_bytes(project_id: str, file_key: str) -> tuple[bytes, str] | None:
+    """Return (bytes, media_type) for an explorer file key."""
+    rel = EXPLORER_SCHEMA_FILES.get(file_key)
+    if not rel or ".." in rel:
+        return None
+    root = project_dir(project_id)
+    p = root / rel
+    if file_key == "launch_schema" and (not p.is_file() or p.stat().st_size < 32):
+        from schemagraph.launch_compat.schema.builder import ensure_launch_schema_reference
+
+        ensure_launch_schema_reference(root)
+        p = root / rel
+    if not p.is_file():
+        return None
+    data = p.read_bytes()
+    if rel.endswith(".json"):
+        return data, "application/json"
+    if rel.endswith(".csv"):
+        return data, "text/csv"
+    return data, "application/octet-stream"
 
 
 def _now_iso() -> str:
@@ -399,7 +456,54 @@ def init_schema_registry(
             "label": "Upload received — run parse to populate dependency graph and components",
         }
     ]
+    doc = _attach_launch_readiness(
+        project_id, doc, diagram=None, annotations=[], extraction_source="upload"
+    )
     write_registry_files(project_id, doc)
+    return doc
+
+
+def import_launch_readiness_document(
+    session: Session,
+    project_id: str,
+    doc: dict[str, Any],
+    *,
+    extraction_source: str = "csv_import",
+) -> dict[str, Any]:
+    """Write an imported SatelliteLaunchReadiness manifest + CSVs into the project."""
+    from schemagraph.launch_compat.schema.builder import attach_launch_to_registry
+    from schemagraph.launch_compat.schema.field_catalog import compute_check_readiness
+    from schemagraph.launch_compat.schema.validate import validate_document
+
+    rec = session.get(ProjectRecord, project_id)
+    if not rec:
+        raise ValueError(f"unknown project {project_id}")
+
+    ok, errors = validate_document(doc)
+    if not ok:
+        raise ValueError("launch readiness validation failed: " + "; ".join(errors))
+
+    doc = dict(doc)
+    doc["project_id"] = project_id
+    doc["project_name"] = rec.name
+    doc["updated_at"] = _now_iso()
+    doc["extraction_source"] = extraction_source
+    readiness = compute_check_readiness(doc.get("mission") or {}, doc.get("components") or [])
+    doc["check_readiness"] = {
+        "ready_count": readiness.ready_count,
+        "blocked_count": readiness.blocked_count,
+        "missing_mission_fields": readiness.missing_mission_fields,
+        "missing_component_fields": readiness.missing_component_fields,
+        "tests_unblocked": readiness.tests_unblocked,
+    }
+
+    if not registry_exists(project_id):
+        init_schema_registry(session, project_id, project_name=rec.name, parse_status=rec.parse_status)
+    registry = load_schema_registry(project_id)
+    if not registry:
+        raise ValueError("schema registry missing after init")
+    registry = attach_launch_to_registry(project_id, doc, registry)
+    write_registry_files(project_id, registry)
     return doc
 
 
@@ -418,8 +522,40 @@ def rebuild_schema_registry(session: Session, project_id: str) -> dict[str, Any]
         diagram=diagram,
         annotations=annotations,
     )
+    doc = _attach_launch_readiness(
+        project_id,
+        doc,
+        diagram=diagram,
+        annotations=annotations,
+        extraction_source="schematic_parse",
+    )
     write_registry_files(project_id, doc)
     return doc
+
+
+def _attach_launch_readiness(
+    project_id: str,
+    registry_doc: dict[str, Any],
+    *,
+    diagram: dict[str, Any] | None = None,
+    annotations: list[Any] | None = None,
+    profile: dict[str, Any] | None = None,
+    extraction_source: str = "schematic_parse",
+) -> dict[str, Any]:
+    from schemagraph.launch_compat.schema.builder import (
+        attach_launch_to_registry,
+        build_launch_readiness,
+    )
+
+    launch_doc = build_launch_readiness(
+        project_id=project_id,
+        project_name=registry_doc.get("project_name") or project_id,
+        diagram=diagram,
+        annotations=annotations or [],
+        profile=profile,
+        extraction_source=extraction_source,
+    )
+    return attach_launch_to_registry(project_id, launch_doc, registry_doc)
 
 
 def load_schema_registry(project_id: str) -> dict[str, Any] | None:
