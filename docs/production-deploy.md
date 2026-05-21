@@ -3,7 +3,7 @@
 | Layer | Host | URL |
 |-------|------|-----|
 | React UI | Vercel | https://www.vioci.xyz |
-| FastAPI API | Render (Docker) | `https://vioci-api.onrender.com` (after blueprint deploy) |
+| FastAPI API | Render (Docker) | `https://vioci-work-1.onrender.com` |
 
 ## 1. Deploy the Python API on Render
 
@@ -23,11 +23,11 @@
 
 5. Wait until deploy is **Live**. Open:
 
-   `https://vioci-api.onrender.com/api/health`
+   `https://vioci-work-1.onrender.com/api/health`
 
    Expect: `{"ok":true}`
 
-Copy the service URL (no trailing slash), e.g. `https://vioci-api.onrender.com`.
+Copy the service URL (no trailing slash), e.g. `https://vioci-work-1.onrender.com`.
 
 > Free Render services spin down after idle; first request may take ~30s.
 
@@ -38,7 +38,7 @@ Copy the service URL (no trailing slash), e.g. `https://vioci-api.onrender.com`.
 
    | Name | Value |
    |------|--------|
-   | `VIOCI_API_ORIGIN` | `https://vioci-api.onrender.com` |
+   | `VIOCI_API_ORIGIN` | `https://vioci-work-1.onrender.com` |
 
 3. **Redeploy** (required — the build script writes `/api` rewrites from this variable):
 
@@ -57,7 +57,7 @@ Copy the service URL (no trailing slash), e.g. `https://vioci-api.onrender.com`.
 ## How routing works
 
 - Browser calls `https://www.vioci.xyz/api/...`
-- Vercel **rewrites** to `https://vioci-api.onrender.com/api/...`
+- Vercel **rewrites** to `https://vioci-work-1.onrender.com/api/...` (also committed in `webapp/vercel.json`)
 - WebSockets use the same host (`wss://www.vioci.xyz/api/projects/.../events`)
 - CORS on the API allows `vioci.xyz` and Vercel domains
 
@@ -67,7 +67,7 @@ Implementation: [`webapp/scripts/sync-vercel-api-rewrite.mjs`](../webapp/scripts
 
 Set on Vercel instead:
 
-- `VITE_API_BASE_URL` = `https://vioci-api.onrender.com`
+- `VITE_API_BASE_URL` = `https://vioci-work-1.onrender.com`
 
 Leave `VIOCI_API_ORIGIN` unset. CORS must include your UI origin (already in `render.yaml`).
 

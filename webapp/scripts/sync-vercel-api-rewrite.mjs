@@ -11,20 +11,20 @@ const vercelPath = path.join(root, '..', 'vercel.json')
 const origin = (process.env.VIOCI_API_ORIGIN || '').trim().replace(/\/$/, '')
 
 const config = JSON.parse(fs.readFileSync(vercelPath, 'utf8'))
-const rewrites = []
+const rewrites = (config.rewrites || []).filter((r) => !String(r.source || '').startsWith('/api'))
 
 if (origin) {
-  rewrites.push({
+  rewrites.unshift({
     source: '/api/:path*',
     destination: `${origin}/api/:path*`,
   })
   console.log(`[vercel] API rewrite → ${origin}/api/*`)
-} else {
-  console.warn(
-    '[vercel] VIOCI_API_ORIGIN unset — UI will call /api on the Vercel host only. Set after Render deploy.',
-  )
+} else if (!rewrites.some((r) => r.source === '/(.*)')) {
+  console.log('[vercel] Using API rewrite from vercel.json (VIOCI_API_ORIGIN unset)')
 }
 
-rewrites.push({ source: '/(.*)', destination: '/index.html' })
+if (!rewrites.some((r) => r.source === '/(.*)')) {
+  rewrites.push({ source: '/(.*)', destination: '/index.html' })
+}
 config.rewrites = rewrites
 fs.writeFileSync(vercelPath, `${JSON.stringify(config, null, 2)}\n`)
