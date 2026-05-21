@@ -44,6 +44,16 @@ def _normalize_database_url(url: str) -> str:
     return url
 
 
+def _postgres_connect_args(url: str) -> dict:
+    """Supabase pooler (PgBouncer) breaks psycopg3 server-side prepared statements."""
+    args: dict = {"connect_timeout": 20}
+    if "postgresql" in url and "+psycopg" in url:
+        args["prepare_threshold"] = None
+    if "sslmode=" not in url:
+        args["sslmode"] = "require"
+    return args
+
+
 def _migrate_legacy_project_table(conn: sqlite3.Connection) -> None:
     cur = conn.execute("PRAGMA table_info(project)")
     cols = {row[1] for row in cur.fetchall()}
@@ -92,7 +102,7 @@ def init_db() -> None:
         _engine = create_engine(
             url,
             pool_pre_ping=True,
-            connect_args={"connect_timeout": 20},
+            connect_args=_postgres_connect_args(url),
         )
     else:
         db_path = index_db_path()

@@ -25,7 +25,7 @@ No credit card is required for the Supabase free plan. If you only set `VIOCI_DA
 VIOCI_DATABASE_URL=postgresql://postgres.xxxx:YOUR_PASSWORD@aws-0-us-east-1.pooler.supabase.com:6543/postgres
 ```
 
-The app rewrites this to `postgresql+psycopg://` automatically.
+The app rewrites this to `postgresql+psycopg://` automatically and disables server-side prepared statements (required for the transaction pooler on port 6543).
 
 ## 3. Storage bucket (project files)
 
@@ -92,3 +92,4 @@ This copies rows from `workspace/.index.sqlite` into Postgres and uploads files 
 | Connection refused on port 5432 | Use the **pooler** URI on port **6543** from the dashboard |
 | Storage upload 403 | Create the `vioci` bucket; confirm service role key |
 | Tables missing | Run `scripts/check_cloud.py` or start the API once (`init_db` creates tables) |
+| `DuplicatePreparedStatement` / `f405` on startup | Use the **transaction pooler** URI (6543); the app sets `prepare_threshold=None` automatically — redeploy after updating |

@@ -17,7 +17,10 @@
 | `VIOCI_DATABASE_URL` | Yes (prod) | Supabase pooler URI — [cloud-setup.md](./cloud-setup.md) |
 | `VIOCI_SUPABASE_URL` | Recommended | File storage |
 | `VIOCI_SUPABASE_SERVICE_ROLE_KEY` | Recommended | Backend only |
-| `GOOGLE_API_KEY` | For parse/chat | Or Vertex config |
+| `SCHEMAGRAPH_GOOGLE_USE_VERTEX` | Parse/chat (Vertex) | `true` in blueprint |
+| `SCHEMAGRAPH_GOOGLE_PROJECT` | Vertex | e.g. `schemagraph-dev` |
+| `GOOGLE_APPLICATION_CREDENTIALS_JSON` | Vertex on Render | Full GCP service account key JSON (see below) |
+| `GOOGLE_API_KEY` | Alternative | AI Studio; set `SCHEMAGRAPH_GOOGLE_USE_VERTEX=false` |
 | `VIOCI_JWT_SECRET` | Auto-generated | Or set your own long random string |
 | `VIOCI_CORS_ORIGINS` | Pre-set in blueprint | Add preview URLs if needed |
 
@@ -87,4 +90,19 @@ curl http://127.0.0.1:8000/api/health
 | Login network error | Render API down or wrong `VIOCI_API_ORIGIN` |
 | CORS error in browser | Add your UI URL to `VIOCI_CORS_ORIGINS` on Render |
 | 401 after login | Same `VIOCI_JWT_SECRET` not required across hosts if using proxy; JWT is issued by API |
-| Parse never finishes | Set `GOOGLE_API_KEY` on Render |
+| Parse: default credentials not found | Vertex: set `GOOGLE_APPLICATION_CREDENTIALS_JSON` on Render (see below) |
+| Parse never finishes | Vertex creds + `SCHEMAGRAPH_GOOGLE_PROJECT`, or use `GOOGLE_API_KEY` |
+
+### Vertex AI on Render (Option B)
+
+1. GCP Console → **IAM** → **Service accounts** → create e.g. `vioci-render` in project `schemagraph-dev`.
+2. Roles: **Vertex AI User** (and enable **Vertex AI API** on the project).
+3. **Keys** → Add key → JSON → copy the entire file.
+4. Render → **vioci-api** → **Environment** → add secret `GOOGLE_APPLICATION_CREDENTIALS_JSON` = paste JSON (one line is fine).
+5. Redeploy. Logs should show `[vioci] vertex ADC: /tmp/gcp-adc.json`.
+
+Locally (same Vertex settings in `.env`):
+
+```bash
+gcloud auth application-default login
+```

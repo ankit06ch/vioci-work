@@ -1,5 +1,6 @@
 .env
 .env.*
+.gcp/
 !.env.example
 /workspace/
 webapp/node_modules/

@@ -24,7 +24,10 @@ from server.routes import (
     simulate,
     ws,
 )
+from schemagraph.config import get_settings as get_schemagraph_settings
+
 from server.cloud_files import cloud_storage_enabled
+from server.gcp_auth import configure_vertex_adc
 from server.settings import get_server_settings
 from server.state import init_db
 
@@ -34,6 +37,13 @@ async def lifespan(app: FastAPI):
     events.reset_for_startup()
     events.set_loop(asyncio.get_running_loop())
     init_db()
+    sg = get_schemagraph_settings()
+    if sg.google_use_vertex:
+        adc_path = configure_vertex_adc()
+        if adc_path:
+            print(f"[vioci] vertex ADC: {adc_path}", flush=True)
+        else:
+            print("[vioci] vertex ADC: application-default (gcloud or metadata)", flush=True)
     s = get_server_settings()
     if s.database_url:
         mode = "cloud postgres"

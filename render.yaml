@@ -24,7 +24,13 @@ services:
         value: vioci
       - key: VIOCI_CORS_ORIGINS
         value: https://www.vioci.xyz,https://vioci.xyz,https://vioci.vercel.app
-      - key: GOOGLE_API_KEY
-        sync: false
       - key: SCHEMAGRAPH_GOOGLE_USE_VERTEX
-        value: "false"
+        value: "true"
+      - key: SCHEMAGRAPH_GOOGLE_PROJECT
+        value: schemagraph-dev
+      - key: SCHEMAGRAPH_GOOGLE_LOCATION
+        value: us-central1
+      - key: SCHEMAGRAPH_GOOGLE_MODEL
+        value: gemini-2.5-flash-lite
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        sync: false

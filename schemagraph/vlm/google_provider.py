@@ -65,11 +65,22 @@ class GoogleProvider(VLMProvider):
                     "Vertex AI mode requires SCHEMAGRAPH_GOOGLE_PROJECT to be set "
                     "(your GCP project id)."
                 )
-            return genai.Client(
-                vertexai=True,
-                project=self._project,
-                location=self._location,
-            )
+            try:
+                return genai.Client(
+                    vertexai=True,
+                    project=self._project,
+                    location=self._location,
+                )
+            except Exception as e:
+                msg = str(e)
+                if "default credentials" in msg.lower() or "credentials" in msg.lower():
+                    raise RuntimeError(
+                        "Vertex AI credentials missing. Locally run: "
+                        "gcloud auth application-default login. "
+                        "On Render set GOOGLE_APPLICATION_CREDENTIALS_JSON to your "
+                        "GCP service account key JSON."
+                    ) from e
+                raise
 
         if not self._api_key:
             raise RuntimeError(
