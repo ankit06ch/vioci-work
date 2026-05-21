@@ -1,0 +1,30 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Dashboard → New → Blueprint → connect ankit06ch/vioci-work
+services:
+  - type: web
+    name: vioci-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: virginia
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: VIOCI_JWT_SECRET
+        generateValue: true
+      - key: VIOCI_DATABASE_URL
+        sync: false
+      - key: VIOCI_SUPABASE_URL
+        sync: false
+      - key: VIOCI_SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: VIOCI_SUPABASE_BUCKET
+        value: vioci
+      - key: VIOCI_CORS_ORIGINS
+        value: https://www.vioci.xyz,https://vioci.xyz,https://vioci.vercel.app
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: SCHEMAGRAPH_GOOGLE_USE_VERTEX
+        value: "false"

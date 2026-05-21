@@ -1,6 +1,8 @@
 # Deploy Vioci webapp to Vercel (existing project)
 
-The **webapp** is a static Vite/React build. The **FastAPI API** (`server/`) does not run on Vercel by default — host it elsewhere (Railway, Render, Fly.io, a VM, etc.) and either proxy `/api` from Vercel or set `VITE_API_BASE_URL`.
+The **webapp** is a static Vite/React build. The **FastAPI API** runs on **Render** — see **[production-deploy.md](./production-deploy.md)** for the full Vercel + Render setup.
+
+Quick link: set Vercel env `VIOCI_API_ORIGIN` to your Render URL, then redeploy.
 
 ## 1. Vercel project settings
 

@@ -41,6 +41,12 @@ class ServerSettings(BaseSettings):
 
     auth_disabled: bool = False
 
+    # Comma-separated browser origins (production UI + local Vite)
+    cors_origins: str = (
+        "http://127.0.0.1:5173,http://localhost:5173,"
+        "https://www.vioci.xyz,https://vioci.xyz,https://vioci.vercel.app"
+    )
+
 
 @lru_cache
 def get_server_settings() -> ServerSettings:
